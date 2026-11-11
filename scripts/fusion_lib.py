@@ -400,12 +400,32 @@ def resolve_fusion_dirs():
     return dirs
 
 
-def asset_path(group, filename):
-    """Absolute path Resolve can read (a sandboxed App Store build only reads its
-    own container). The path is baked into the .setting — rebuild per machine/build."""
+# How Loader paths are written into the .setting:
+#   "absolute" — full path into the detected Fusion folder (works today, but ties the
+#                template to this machine and Resolve build);
+#   "pathmap"  — "Fusion:Assets/<group>/<file>", resolved by Resolve itself (portable).
+#                UNVERIFIED: enable after Test 15 of the test pack passes
+#                (env DRT_ASSET_PATHS=pathmap or ASSET_PATHS = "pathmap" in the spec).
+ASSET_PATHS = os.environ.get("DRT_ASSET_PATHS", "absolute")
+
+
+def asset_dir(group):
+    """Folder on this machine where --install copies the group's images."""
     dirs = resolve_fusion_dirs()
-    base = dirs[0] if dirs else WEBSITE_FUSION
-    return os.path.join(base, "Assets", group, filename)
+    return os.path.join(dirs[0] if dirs else WEBSITE_FUSION, "Assets", group)
+
+
+def asset_path(group, filename, mode=None):
+    """Path written into the Loader (see ASSET_PATHS)."""
+    if (mode or ASSET_PATHS) == "pathmap":
+        return f"Fusion:Assets/{group}/{filename}"
+    return os.path.join(asset_dir(group), filename)
+
+
+def manifest_path(pack):
+    """Install manifest of a pack: lines 'asset <path>' / 'template <path>'."""
+    dirs = resolve_fusion_dirs()
+    return os.path.join(dirs[0] if dirs else WEBSITE_FUSION, "Assets", ".drt-manifests", f"{pack}.txt")
 
 
 class LoaderTool(Tool):

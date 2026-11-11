@@ -11,9 +11,13 @@
 #
 # Both builds installed -> installs into both. Does NOT start, stop, or script Resolve.
 #
+# Every install records what it put where in <Fusion>/Assets/.drt-manifests/<PACK>.txt
+# (lines "template <path>"; generate.py --install adds "asset <path>").
+#
 # Usage:
 #   install_macos.sh --detect                     # list Resolve builds and their Templates folders
 #   install_macos.sh <file.drfx> [--target auto|appstore|website|all]
+#   install_macos.sh --uninstall <PACK> [--yes]   # remove a pack and its images (plan without --yes)
 set -euo pipefail
 
 WEBSITE_T="$HOME/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/Templates"
@@ -43,6 +47,54 @@ detect() {
     fi
   done
 }
+
+fusion_dirs() {  # every Fusion user folder that exists (App Store containers + website)
+  local d
+  for d in "$HOME"/Library/Containers/com.blackmagic-design.DaVinciResolve*/Data/Library/"Application Support"/Fusion; do
+    [[ -d "$d" ]] && echo "$d"
+  done
+  [[ -d "$(dirname "$WEBSITE_T")" ]] && dirname "$WEBSITE_T"
+  return 0
+}
+
+record() {  # record <fusion dir> <template path>...   (replaces old template lines of this pack)
+  local fdir="$1"; shift
+  local man="$fdir/Assets/.drt-manifests/$PACK_NAME.txt"
+  mkdir -p "$(dirname "$man")"
+  { [[ -f "$man" ]] && grep -v '^template ' "$man" || true; for p in "$@"; do echo "template $p"; done; } > "$man.tmp"
+  mv "$man.tmp" "$man"
+}
+
+if [[ "${1:-}" == "--uninstall" ]]; then
+  PACK="${2:-}"
+  [[ -z "$PACK" ]] && { echo "usage: $0 --uninstall <PACK> [--yes]" >&2; exit 1; }
+  YES=""; [[ "${3:-}" == "--yes" ]] && YES=1
+  plan=()
+  while IFS= read -r fdir; do
+    [[ -z "$fdir" ]] && continue
+    man="$fdir/Assets/.drt-manifests/$PACK.txt"
+    if [[ -f "$man" ]]; then
+      while read -r _kind path; do
+        case "$path" in "$fdir"/*) [[ -e "$path" ]] && plan+=("$path") ;; *) echo "skip (outside $fdir): $path" >&2 ;; esac
+      done < "$man"
+      plan+=("$man")
+    elif [[ -f "$fdir/Templates/$PACK.drfx" ]]; then
+      plan+=("$fdir/Templates/$PACK.drfx")
+    fi
+  done < <(fusion_dirs)
+  if [[ ${#plan[@]} -eq 0 ]]; then
+    echo "nothing installed for pack \"$PACK\""
+    exit 1
+  fi
+  printf '  %s\n' "${plan[@]}"
+  if [[ -z "$YES" ]]; then
+    echo "Plan only. Re-run with --yes to delete these files (ask the user first)."
+    exit 0
+  fi
+  for p in "${plan[@]}"; do rm -f "$p"; rmdir "$(dirname "$p")" 2>/dev/null || true; done
+  echo "Removed ${#plan[@]} file(s). Restart Resolve."
+  exit 0
+fi
 
 if [[ "${1:-}" == "--detect" ]]; then
   found="$(detect)"
@@ -74,14 +126,19 @@ if [[ -n "$BAD" ]] || unzip -Z1 "$DRFX" | grep -q '\.\.'; then
   exit 1
 fi
 
+PACK_NAME="$(basename "$DRFX" .drfx)"
 install_appstore() {  # $1 = templates dir
   mkdir -p "$1"
   cp -f "$DRFX" "$1/$(basename "$DRFX")"
+  record "$(dirname "$1")" "$1/$(basename "$DRFX")"
   echo "Installed [App Store build] -> $1/$(basename "$DRFX")"
 }
 install_website() {
   mkdir -p "$WEBSITE_T"
   unzip -o -q "$DRFX" -d "$WEBSITE_T"
+  local entries=()
+  while IFS= read -r e; do [[ "$e" == */ ]] || entries+=("$WEBSITE_T/$e"); done < <(unzip -Z1 "$DRFX")
+  record "$(dirname "$WEBSITE_T")" "${entries[@]}"
   echo "Installed [website build]   -> $WEBSITE_T (unzipped)"
 }
 
