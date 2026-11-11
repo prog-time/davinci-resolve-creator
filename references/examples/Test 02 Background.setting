@@ -1,0 +1,31 @@
+{
+	Tools = ordered() {
+		Test02Background = MacroOperator {
+			CtrlWZoom = false,
+			NameSet = true,
+			Inputs = ordered() {
+			},
+			Outputs = {
+				MainOutput1 = InstanceOutput { SourceOp = "BgTest", Source = "Output", },
+			},
+			ViewInfo = GroupInfo { Pos = { 0, 0 } },
+			Tools = ordered() {
+				BgTest = Background {
+					CtrlWZoom = false,
+					Inputs = {
+						Width = Input { Value = 1920, },
+						Height = Input { Value = 1080, },
+						UseFrameFormatSettings = Input { Value = 1, },
+						["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+						TopLeftRed = Input { Value = 0.2, },
+						TopLeftGreen = Input { Value = 1.0, },
+						TopLeftBlue = Input { Value = 0.2, },
+						TopLeftAlpha = Input { Value = 1.0, },
+					},
+					ViewInfo = OperatorInfo { Pos = { 0, 0 } },
+				},
+			},
+		},
+	},
+	ActiveTool = "Test02Background"
+}
