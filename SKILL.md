@@ -86,7 +86,9 @@ of `$SKILL_DIR` in every command. Put working files into the current project:
 ### Step 2 — Grill Me questions
 
 Ask the questions from `references/questions.md`, **one per message**, each
-with a recommendation. Skip questions answered by the image or already
+with a recommendation. For simple templates or when the user wants speed,
+use the **quick mode** from the same file: one message with all
+recommendations, the user answers "OK" or corrects numbered items. Skip questions answered by the image or already
 answered. "OK to all" / «ок на всё» means: take the recommendations.
 Check fonts yourself with `scripts/fonts.py`:
 
@@ -187,6 +189,10 @@ Then tell the user:
    group `<GROUP>` (or search by name).
 3. Put the playhead in the middle of the clip: the first and last frames
    are transparent because of the animation.
+
+To remove a template and its images: `install_macos.sh --uninstall "<PACK>"`
+prints the plan from the install manifest; run it with `--yes` only after the
+user agrees.
 
 Windows and Linux paths are in `references/setting-format.md`. They are not
 verified; say so.

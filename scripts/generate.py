@@ -54,11 +54,15 @@ def main():
     ap.add_argument("--pack", action="store_true")
     ap.add_argument("--install", action="store_true", help="pack and run install_macos.sh")
     ap.add_argument("--no-preview", action="store_true")
+    ap.add_argument("--asset-paths", choices=("absolute", "pathmap"),
+                    help="how Loader paths are written (default: spec ASSET_PATHS, env DRT_ASSET_PATHS, absolute)")
     ap.add_argument("--preview-anim", type=int, metavar="FRAMES", nargs="?", const=150,
                     help="also render an animated preview (GIF + frame sheet) of FRAMES frames")
     a = ap.parse_args()
 
     # frame must be set before the spec computes pixel positions
+    if a.asset_paths:
+        fl.ASSET_PATHS = a.asset_paths
     mod = load_spec(a.spec)
     fl.set_frame(*getattr(mod, "FRAME", (1920, 1080)))
     category = getattr(mod, "CATEGORY", "Titles")
@@ -108,11 +112,19 @@ def main():
         if a.install:
             # ASSETS = {"name.png": "/source/path.png"} -> copied to fl.asset_path(GROUP, name)
             import shutil
+            pack_name = getattr(mod, "PACK", names[0])
+            copied = []
             for name, src_path in getattr(mod, "ASSETS", {}).items():
-                dst = fl.asset_path(mod.GROUP, name)
+                dst = os.path.join(fl.asset_dir(mod.GROUP), name)
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
                 shutil.copyfile(src_path, dst)
+                copied.append(dst)
                 print(f"asset -> {dst}")
+            if copied:                         # read by install_macos.sh --uninstall
+                man = fl.manifest_path(pack_name)
+                os.makedirs(os.path.dirname(man), exist_ok=True)
+                with open(man, "w", encoding="utf-8") as f:
+                    f.write("".join(f"asset {p}\n" for p in copied))
             cmd = [os.path.join(HERE, "install_macos.sh"), drfx]
             r = subprocess.run(cmd)
             if r.returncode != 0:

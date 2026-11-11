@@ -81,7 +81,12 @@ A picture can be baked into the template: set
 `generate.py --install` copies the file into `Fusion/Assets/<group>/` of
 the Resolve build it finds (the App Store build reads only its container).
 The path is written into the `.setting`, so changing the photo means a
-rebuild. Crop the photo beforehand (e.g. 512×512 around the face); round it
+rebuild. By default it is absolute (tied to this Mac and Resolve build);
+`generate.py --asset-paths pathmap` (or `DRT_ASSET_PATHS=pathmap`, or
+`fl.ASSET_PATHS = "pathmap"` at the top of the spec) writes
+`Fusion:Assets/<group>/<file>` instead, which is portable — switch to it once
+Test 15 of the test pack passes. `--install` records the copied images in a
+manifest, so `install_macos.sh --uninstall` removes them with the template. Crop the photo beforehand (e.g. 512×512 around the face); round it
 with an `EffectMask` on the Merge. Not verified (verified.md, items 13–14).
 
 **Decor that cannot be built from nodes** (torn paper, textures, tape,
