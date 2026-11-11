@@ -51,6 +51,9 @@ references/
   examples/              reference .setting files
 scripts/
   fusion_lib.py          .setting builder: nodes, masks, Text+, Loader, checks
+  fusion_anim.py         animation blocks: Timeline (slide, grow, typing, wipe,
+                         hold fade, master controls), place_image
+  setting_diff.py        semantic diff of two .setting files (refactor safety)
   generate.py            spec.py -> .setting + preview + .drfx [+ install]
   analyze_image.py       measurements from a reference image
   video_frames.py        frames + motion timeline from a reference video

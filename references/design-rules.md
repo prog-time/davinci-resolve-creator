@@ -63,7 +63,7 @@ stroke) is too heavy for thin icons. Write the code point in the spec as
 `"\uXXXX"`, not the character itself.
 
 The icon is a separate Text+ with the icon font, the text being the glyph
-(e.g. `""` for Font Awesome). The user swaps it by copying the glyph on
+(e.g. `"\uf00c"` for Font Awesome). The user swaps it by copying the glyph on
 the icon site (fontawesome.com → Copy Glyph) into the "Item N: icon" field.
 Warn that only free icons of the installed style work.
 
@@ -82,16 +82,16 @@ with an `EffectMask` on the Merge. Not verified (verified.md, items 13–14).
 clips, sticky notes, pins, marker strokes): draw it as PNGs with a
 `make_assets.py` script next to the spec (Pillow; rotation and shadow are
 baked in; size in frame pixels). Put the shared layout into `geometry.py`,
-read by both `make_assets.py` and `spec.py`. Place each part as
-`Loader` → `Merge(Size=1, Center=position)` → `Transform` with the
-animation (`pivot` = position). Keep texts as live Text+. Example:
+read by both `make_assets.py` and `spec.py`. Place each part with
+`place_image()` (Loader → Merge(Size=1, Center=position)) and animate it
+with `Timeline.slide()` (`pivot` = position). Keep texts as live Text+. Example:
 `examples/scrapbook-note/` (not verified in Resolve).
 
 **Handwriting.** Text+ cannot draw a pen stroke. Imitation: a
-`RectangleMask` with a soft edge (`soft`) as the Text+ `EffectMask`. The
-mask width grows left to right up to `C.TitleW` (Text+ does not know its
+`RectangleMask` with a soft edge as the Text+ `EffectMask`
+(`Timeline.wipe_mask()`). The mask width grows left to right up to `C.TitleW` (Text+ does not know its
 width, so add a "writing width" slider); a pen icon rides the edge (FA
-``, bottom-left anchor = the tip). Draw an underline as a marker
+`\uf304`, bottom-left anchor = the tip). Draw an underline as a marker
 image revealed by the same kind of mask. Not verified.
 
 Other options:
@@ -122,6 +122,15 @@ Other options:
   ControlGroup make one color field. Each color gets its own group number.
 
 ## Animation
+
+Build animation from `scripts/fusion_anim.py` instead of hand-written
+expressions: `Timeline(ctrl, speed)` gives `prog()`, `eased()`, `on()`,
+`slide()` (fly in from a side with rotation/scale), `grow()` (scale from 0
+around a pivot), `slide_y()`, `typing()`, `wipe_mask()` (handwriting reveal),
+`hold_fade()` / `clip_end_fade()`, `controls()` and `output()` (master
+Transform + MrgOut + exit fade), `publish()`; plus `place_image()` for
+Loader-based images. `scripts/setting_diff.py A B` proves a refactor did not
+change a template.
 
 - `ANIM = "expr"`: entrance and exit on expressions, controls in the
   Inspector. Expressions are verified (time, iif, min/max, Point, multi-line
