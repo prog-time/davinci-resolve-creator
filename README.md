@@ -62,6 +62,13 @@ examples/                specs of templates built with the skill
 docs/brief.md            original brief the skill was built from
 ```
 
+## Development
+
+```bash
+python3 -m pip install -r requirements-dev.txt
+python3 -m pytest -q tests
+```
+
 ## Status
 
 Verified in DaVinci Resolve 21.2 (macOS, App Store build): macro loading,
