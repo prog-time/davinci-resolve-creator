@@ -1,97 +1,99 @@
-# Что проверено в Resolve
+# What is verified in Resolve
 
-Окружение проверок: DaVinci Resolve 21, macOS.
+Test environment: DaVinci Resolve 21.2, macOS (App Store build).
 
-После каждой сверки с пользователем обновляй этот файл: переноси пункты из
-«Требует проверки» в «Работает» или «Не работает» и записывай калибровочные
-значения. Диагностический пакет: `scripts/make_test_pack.py`.
+After every check with the user, update this file: move items from "Needs
+verification" to "Works" or "Does not work" and record calibration values.
+Diagnostic pack: `scripts/make_test_pack.py`.
 
-## Работает (проверено)
+## Works (verified)
 
-- Макрос `MacroOperator` + `InstanceInput` / `InstanceOutput`, загрузка из
-  `Templates/Edit/Titles/<папка>/`.
-- `TextPlus`: кириллица, цвет `Red1/Green1/Blue1/Alpha1`, `Center`, `Size`,
-  якоря `HorizontalLeftCenterRight` / `VerticalTopCenterBottom`.
-- `Background` со сплошным цветом и с `Type = FuID{"Vertical"}` (градиент
-  `TopLeft*` → `BottomLeft*`).
-- `RectangleMask` через `EffectMask` у Background, `CornerRadius`.
-- `Merge` поверх прозрачного `Background` (`TopLeftAlpha = 0`): альфа
-  сохраняется.
-- Полная статичная карточка из 60+ нод, `Transform` с `UserControls`,
-  публикация `Center` / `Size` и пользовательских слайдеров.
-- **`RectangleMask`: Width — доля ширины кадра, Height — доля ВЫСОТЫ кадра**
-  (`MASK_UNIT = "height"`). Маркер 35×35, собранный с Height = px/1920,
-  отрисовался как 35×19.7 px (Typewriter Box, 21.2, 2026-11-11).
-- **Масштаб `Text+ Size`** для Inter: `Size = px / 1920 × 1.51`
-  (`TEXT_SIZE_K`). Без коэффициента ширина текста 386 px вместо 587,
-  x-height 26 вместо 39 (Typewriter Box). Другие шрифты проверь тестом 11.
-- **`EllipseMask`: Width и Height — обе доли ШИРИНЫ кадра** (в отличие от
-  `RectangleMask`). Круг Ø210 с Height = px/1080 вышел в 1.78 раза выше
-  (Icon Features, 2026-11-11). `fl.ellipse_mask()` это учитывает. Контур
-  (`Solid = 0`, `BorderWidth` = px/1920) рисует тонкое кольцо, толщина
-  на глаз верная.
-- **`Transform.Center` — смещение, (0.5, 0.5) = на месте.** Если записать
-  туда позицию элемента, он сдвинется ещё раз на столько же (колонки
-  разъехались вдвое). Масштаб вокруг точки: `Pivot` = точка, `Center` = 0.5
+- Macro `MacroOperator` + `InstanceInput` / `InstanceOutput`, loaded from
+  `Templates/Edit/Titles/<folder>/`.
+- `TextPlus`: Cyrillic, color `Red1/Green1/Blue1/Alpha1`, `Center`, `Size`,
+  anchors `HorizontalLeftCenterRight` / `VerticalTopCenterBottom`.
+- `Background` with a solid color and with `Type = FuID{"Vertical"}`
+  (gradient `TopLeft*` → `BottomLeft*`).
+- `RectangleMask` as `EffectMask` of a Background, `CornerRadius`.
+- `Merge` over a transparent `Background` (`TopLeftAlpha = 0`): alpha is
+  preserved.
+- A full static card of 60+ nodes, `Transform` with `UserControls`,
+  publishing `Center` / `Size` and custom sliders.
+- **`RectangleMask`: Width is a fraction of frame width, Height of frame
+  HEIGHT** (`MASK_UNIT = "height"`). A 35×35 handle built with
+  Height = px/1920 rendered as 35×19.7 px (Typewriter Box, 2026-11-11).
+- **`Text+ Size`** for Inter: `Size = px / 1920 × 1.51` (`TEXT_SIZE_K`).
+  Without the factor the text was 386 px wide instead of 587, x-height 26
+  instead of 39 (Typewriter Box).
+- **`EllipseMask`: Width and Height are both fractions of frame WIDTH**
+  (unlike `RectangleMask`). A Ø210 circle with Height = px/1080 came out
+  1.78× taller (Icon Features, 2026-11-11). `fl.ellipse_mask()` handles it.
+  Outline mode (`Solid = 0`, `BorderWidth` = px/1920) draws a thin ring;
+  thickness looks right.
+- **`Transform.Center` is an offset, (0.5, 0.5) = no move.** Putting the
+  element's own position there moves it twice as far (columns spread 2×).
+  Scale around a point: `Pivot` = the point, `Center` = 0.5
   (`fl.transform(..., pivot=...)`).
-- **`Text+ Size` считается от высоты строки шрифта** (hhea ascent + descent),
-  а не от em: `Size = em_px / 1920 × (asc+desc)/upm / 0.8023`
-  (`fl.text_size_k()`, метрики читаются из файла шрифта). Inter: 1.21 em,
-  k = 1.51 (измерено). Phosphor-Thin: 1.0 em, k = 1.25. С коэффициентом
-  Inter иконка вышла в 1.16–1.21 раза крупнее, что совпадает с расчётом.
-- **Иконочные шрифты** Phosphor-Thin (Text+ c PUA-символом) рендерятся.
-- **Выражения**: `time`, `iif`, `min`/`max`, ссылки на UserControls
-  (`XfCard.BoxW`), `Point()` в Center, многострочное Lua-выражение с `:`,
-  `string.gmatch`, `Text()` в `StyledText`, ссылка `Node.StyledText.Value`.
-  Печать текста и мигание курсора работают (Typewriter Box).
-- Resolve 21.2 из **App Store** (`DaVinciResolveLite`) читает шаблоны только
-  из контейнера `~/Library/Containers/com.blackmagic-design.DaVinciResolveLite/Data/Library/Application Support/Fusion/Templates/`,
-  `.drfx` лежит там целиком. Распаковка в `~/Library/Application Support/Blackmagic Design/…`
-  для этой сборки не работает: шаблоны не появляются (проверено 2026-11-11).
+- **`Text+ Size` is relative to the font's line height** (hhea ascent +
+  descent), not to the em: `Size = em_px / 1920 × (asc+desc)/upm / 0.8023`
+  (`fl.text_size_k()`, metrics read from the font file). Inter: 1.21 em,
+  k = 1.51 (measured). Phosphor-Thin: 1.0 em, k = 1.25. With Inter's k the
+  icon came out 1.16–1.21× too big, matching the prediction.
+- **Icon fonts**: Phosphor-Thin (Text+ with a PUA glyph) renders.
+- **Expressions**: `time`, `iif`, `min`/`max`, references to UserControls
+  (`XfCard.BoxW`), `Point()` in Center, multi-line Lua expressions starting
+  with `:`, `string.gmatch`, `Text()` in `StyledText`, `Node.StyledText.Value`.
+  Typing text and a blinking cursor work (Typewriter Box).
+- Resolve 21.2 from the **App Store** (`DaVinciResolveLite`) reads templates
+  only from its container
+  `~/Library/Containers/com.blackmagic-design.DaVinciResolveLite/Data/Library/Application Support/Fusion/Templates/`,
+  with the `.drfx` kept whole. Unzipping into
+  `~/Library/Application Support/Blackmagic Design/…` does nothing for this
+  build: templates never appear (verified 2026-11-11).
 
-## Требует проверки
+## Needs verification
 
-| # | Что | Тест | Ожидаемый результат |
+| # | What | Test | Expected |
 |---|---|---|---|
-| 1 | ~~Высота `RectangleMask`~~ — проверено, см. выше. Test 05: должна быть ровно 4:1 полоса **B** (голубая) | Test 05 | контроль |
-| 2 | `TEXT_SIZE_K` для шрифтов, кроме Inter | Test 11 | «H» при Size=100px примерно равна высоте планки × cap-height шрифта |
-| 3 | `HorizontalJustificationNew = 0` выравнивает многострочный текст влево | Test 06 | 3 строки по левому краю |
-| 4 | `comp.RenderEnd` (исчезновение в конце клипа); остальные выражения проверены | Test 07 | Выезд и фейд в начале и в конце клипа |
-| 5 | Ключевые кадры: `BezierSpline`, `XYPath` | Test 08 | Выезд и фейд только в начале |
-| 6 | Shapes: `sRectangle`, `sEllipse`, `sMerge`, `sRender` (имена входов, единицы) | Test 09 | Прямоугольник 400×200 и круг |
-| 7 | `RectangleMask.SoftEdge` (тень), `SoftGlow` | Test 10 | Мягкая тень, свечение |
-| 8 | `publish_font`: Font + Style в одной ControlGroup | Test 12 | Шрифт и стиль рядом |
-| 9 | Ссылка на `Node.Center.X` в выражении (`TxtPeriod`) | Pricing Card | Период стоит справа от цены и двигается вместе с ней |
-| 10 | Превью `.png` рядом с `.setting` показывается в Effects Library | любой шаблон | Миниатюра вместо стандартной иконки |
-| 11 | Шаблоны типа Effect (`main_input`) и Generator | — | — |
-| 13 | `Loader` в титре (`fl.loader`, still: Loop=1, GlobalStart −1000…100000), файл в `Fusion/Assets/<группа>/` контейнера App Store | Subscribe Bar | фото видно в круге на всех кадрах |
-| 14 | `Merge` с `EffectMask` (обрезка фото кругом) и `Merge.Size` = px/ширина картинки (фото без масштабирования) | Subscribe Bar | фото Ø167, не больше и не меньше |
-| 15 | `math.cos` / `math.sin` / `math.pi` и `abs` в выражениях | Subscribe Bar | спираль фото, нажатие кнопки |
-| 16 | `EffectMask` на Text+ и `RectangleMask.SoftEdge` (письмо заголовка); 9 Loader в одном титре | Scrapbook Note | заголовок проявляется слева направо с мягким краем |
-| 12 | Пути установки Windows / Linux; unzip-установка для сборки с сайта | — | — |
+| 1 | ~~`RectangleMask` height~~ — verified above. Test 05: stripe **B** (cyan) must be exactly 4:1 | Test 05 | control |
+| 2 | Text size factor for fonts other than Inter/Phosphor | Test 11 | "H" at Size=100px ≈ ruler height × the font's cap height |
+| 3 | `HorizontalJustificationNew = 0` left-aligns multi-line text | Test 06 | 3 lines aligned left |
+| 4 | `comp.RenderEnd` (exit at the clip end); other expressions are verified | Test 07 | slide and fade at the start and at the end of the clip |
+| 5 | Keyframes: `BezierSpline`, `XYPath` | Test 08 | slide and fade at the start only |
+| 6 | Shapes: `sRectangle`, `sEllipse`, `sMerge`, `sRender` (input names, units) | Test 09 | 400×200 rectangle and a circle |
+| 7 | `RectangleMask.SoftEdge` (shadow), `SoftGlow` | Test 10 | soft shadow, glow |
+| 8 | `publish_font`: Font + Style in one ControlGroup | Test 12 | font and style side by side |
+| 9 | Reference to `Node.Center.X` in an expression (`TxtPeriod`) | Pricing Card | the period sits right of the price and moves with it |
+| 10 | Preview `.png` next to `.setting` shown in the Effects Library | any template | thumbnail instead of the default icon |
+| 11 | Effect (`main_input`) and Generator templates | — | — |
+| 12 | Windows / Linux install paths; unzip install for the website build | — | — |
+| 13 | `Loader` in a title (`fl.loader`, still: Loop=1, GlobalStart −1000…100000), file in `Fusion/Assets/<group>/` of the App Store container | Subscribe Bar | the photo is visible in the circle on every frame |
+| 14 | `Merge` with `EffectMask` (round crop) and `Merge.Size` = px / image width (no rescaling of the foreground) | Subscribe Bar | photo exactly Ø167 |
+| 15 | `math.cos` / `math.sin` / `math.pi` and `abs` in expressions | Subscribe Bar | photo spiral, button press |
+| 16 | `EffectMask` on Text+ and `RectangleMask.SoftEdge` (title writing); 9 Loaders in one title | Scrapbook Note | the title is revealed left to right with a soft edge |
+| 17 | Text+ `CharacterSpacing` and `LineSpacing` units (assumed: spacing adds (cs−1)×Size×1920 px per character) | Profile Card, Typewriter grid | letter spacing matches the reference |
 
-Если выражения (п. 4) не работают, переключай шаблоны на `ANIM = "keys"`
-(только появление). Если не работают и ключевые кадры, ставь `"static"`.
+If expressions (item 4) fail, switch templates to `ANIM = "keys"` (entrance
+only). If keyframes fail too, use `"static"`.
 
-## Не работает / ограничения
+## Does not work / limits
 
-- Перетаскивание `.drfx` в окно Resolve кладёт пакет туда, откуда его
-  читает установленная сборка. Это запасной способ, если скрипт не может
-  писать в нужную папку.
-- `osascript -e 'quit app "DaVinci Resolve"'` при несохранённом проекте
-  возвращает ошибку `-128`. Пользователь должен сам сохранить проект (Cmd+S)
-  и закрыть Resolve (Cmd+Q).
-- Text+ не переносит строки сам.
-- Картинка в Title: только «вшитая» через Loader с абсолютным путём (п. 13);
-  поле выбора файла в Inspector не сделать, смена фото = пересборка.
-- Переходы (Transitions) не поддерживаются.
+- Dragging a `.drfx` into the Resolve window puts the pack where the
+  installed build reads it. Use it as a fallback when the script cannot
+  write to the folder.
+- `osascript -e 'quit app "DaVinci Resolve"'` with an unsaved project
+  returns error `-128`. The user must save (Cmd+S) and quit (Cmd+Q) by hand.
+- Text+ does not wrap lines.
+- Pictures in a title: only baked in via Loader with an absolute path
+  (item 13); no file picker in the Inspector; changing the photo = rebuild.
+- Transitions are not supported.
 
-## Калибровка
+## Calibration
 
-| Параметр | Значение | Дата, версия |
+| Parameter | Value | Date, version |
 |---|---|---|
 | `TEXT_SIZE_K` (Inter) | 1.51 | 2026-11-11, Resolve 21.2 App Store |
-| `TEXT_LINE_K` (Size → высота строки) | 0.8023 | 2026-11-11, по Inter, подтверждено Phosphor |
+| `TEXT_LINE_K` (Size → line height) | 0.8023 | 2026-11-11, from Inter, confirmed by Phosphor |
 | `MASK_UNIT` | height | 2026-11-11, Resolve 21.2 App Store |
-| Text+ сетка «+» (Inter ExtraLight): шаг по X при Size=66px, CharacterSpacing=1.08, без K | 34.1 px | 2026-11-11 |
-| то же, шаг по Y при LineSpacing=0.575, без K | 31.3 px | 2026-11-11 |
+| Text+ "+" grid (Inter ExtraLight): X step at Size=66px, CharacterSpacing=1.08, without K | 34.1 px | 2026-11-11 |
+| same, Y step at LineSpacing=0.575, without K | 31.3 px | 2026-11-11 |

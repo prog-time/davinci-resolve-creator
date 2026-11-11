@@ -1,94 +1,97 @@
-# Вопросы Grill Me
+# Grill Me questions
 
-## Как спрашивать
+Ask in the user's language. The wording below is the meaning, not a script.
 
-- **Один вопрос за сообщение.** Если доступен AskUserQuestion, задавай вопрос
-  через него: рекомендуемый вариант идёт первым с пометкой «(рекомендую)».
-  Иначе пиши обычным текстом.
-- Формат вопроса:
+## How to ask
+
+- **One question per message.** If AskUserQuestion is available, use it: the
+  recommended option goes first, marked "(recommended)" in the user's
+  language (e.g. «(рекомендую)»). Otherwise write plain text.
+- Question format (Russian example):
 
   > **Вопрос 3/≈12. Как ведёт себя текст?**
   > Рекомендую: фиксированная ширина, 1 строка (так на картинке).
   > Варианты: фикс 1 строка · многострочный (`\n`) · ширина под текст
 
-- **Не спрашивай то, что видно на картинке** (расположение, цвета, пропорции,
-  радиусы, число пунктов). Вместо вопроса напиши, что увидел:
-  «Увидел: 2 варианта карточки, 5 и 7 пунктов, градиент сверху».
-- Если ответ на вопрос уже прозвучал, пропусти его. Номер «≈N» пересчитывай.
-- Ответы «давай дефолты», «ок на всё», «дальше сам» означают: оставшиеся
-  вопросы пропустить и взять рекомендации.
-- Ответ «не знаю»: возьми рекомендацию и запиши её в допущения.
-- Вопросы с пометкой ↳ задавай только тогда, когда выполнено условие.
+- **Don't ask what the image shows** (position, colors, proportions, radii,
+  number of items). Say what you saw instead: "Saw: 2 card variants, 5 and 7
+  items, gradient at the top".
+- Skip a question if it is already answered. Recount the "≈N".
+- "Use defaults", "OK to all", "decide yourself" (or «давай дефолты»,
+  «ок на всё», «дальше сам») mean: skip the remaining questions and take the
+  recommendations.
+- "Don't know": take the recommendation and list it under assumptions.
+- Questions marked ↳ are asked only when their condition holds.
 
-## A. Назначение
+## A. Purpose
 
-1. **Тип шаблона.** Title (титр, плашка, lower third, карточка), Generator
-   (фон без клипа), Effect (накладывается на клип). От типа зависит папка в
-   Templates. *Рекомендация: определи по картинке, чаще всего Title.*
-   Переходы (Transitions) скилл пока не делает, скажи об этом прямо.
-2. **Формат кадра.** 1920×1080 · 1080×1920 (Shorts/Reels) · 3840×2160.
-   *Рекомендация: 1920×1080.*
-3. **Структура.** Один элемент, который пользователь копирует на таймлайне, или
-   весь блок одним шаблоном. *Рекомендация: один элемент.*
-4. **Варианты стиля** («обычный / выделенный»). Каждый вариант собирается
-   отдельным файлом. *Рекомендация: столько, сколько видно на картинке, иначе 1.*
+1. **Template type.** Title (title, badge, lower third, card), Generator
+   (background without a clip), Effect (applied to a clip). The type decides
+   the Templates folder. *Recommendation: infer from the image, usually Title.*
+   The skill does not do transitions yet; say so plainly.
+2. **Frame format.** 1920×1080 · 1080×1920 (Shorts/Reels) · 3840×2160.
+   *Recommendation: 1920×1080.*
+3. **Structure.** One element the user copies on the timeline, or the whole
+   block as one template. *Recommendation: one element.*
+4. **Style variants** ("regular / highlighted"). Each variant is a separate
+   file. *Recommendation: as many as the image shows, otherwise 1.*
 
-## B. Контент
+## B. Content
 
-5. **Что редактируется в Inspector.** Тексты, иконки, цвета, позиция и масштаб.
-   *Рекомендация: все тексты и основные цвета, плюс позиция и масштаб.*
-6. **Поведение текста.** Фиксированная ширина в 1 строку · многострочный текст
-   (переносы ставит пользователь через `\n`) · ширина плашки под текст.
-   *Рекомендация: фикс, 1 строка.*
-   - ↳ многострочный: **максимум строк?** *Рекомендация: 3.* Предупреди о
-     лимите символов на строку (примерно 38 символов при 17 px на ширине 345 px).
-   - ↳ под текст: предупреди, что Text+ не меряет ширину сам. Будет ползунок
-     «ширина плашки», который подгоняют вручную.
-7. **Шрифт и кириллица.** «Определил шрифт X. Нужна кириллица?» Наличие шрифта
-   проверь сам (`system_profiler SPFontsDataType | grep -i <font>` или
-   `fc-list | grep -i <font>`). *Рекомендация: X, если установлен и
-   поддерживает кириллицу, иначе Inter.*
-8. **Иконки.** Нет · иконочный шрифт · слот под PNG · вектор.
-   *Рекомендация: Font Awesome 6 Free (Solid). Пользователь меняет иконку
-   через Copy Glyph на fontawesome.com.*
-   - ↳ список с иконками: **максимум пунктов?** *Рекомендация: видимое число + 2.*
-9. **Логотип или картинка.** *Рекомендация: нет.* Если нужен, честно предложи
-   варианты из design-rules.md (раздел «Логотип»): слот под картинку в Title не
-   проверен.
+5. **What is editable in the Inspector.** Texts, icons, colors, position,
+   scale. *Recommendation: all texts and main colors, plus position and scale.*
+6. **Text behaviour.** Fixed width, 1 line · multi-line (the user adds line
+   breaks with `\n`) · badge width follows the text.
+   *Recommendation: fixed, 1 line.*
+   - ↳ multi-line: **max lines?** *Recommendation: 3.* Warn about the
+     characters-per-line limit (about 38 characters at 17 px on 345 px width).
+   - ↳ width follows text: warn that Text+ cannot measure its width. There
+     will be a "badge width" slider the user adjusts by hand.
+7. **Font and Cyrillic.** "Detected font X. Do you need Cyrillic?" Check the
+   font yourself (`system_profiler SPFontsDataType | grep -i <font>` or
+   `fc-list | grep -i <font>`) and check Cyrillic in its cmap.
+   *Recommendation: X if installed and covering the needed script,
+   otherwise Inter.*
+8. **Icons.** None · icon font · PNG slot · vector.
+   *Recommendation: Font Awesome 6 Free (Solid) for filled icons, Phosphor
+   Thin/Light for line icons. The user swaps an icon by copying the glyph
+   from the icon site.*
+   - ↳ list with icons: **max items?** *Recommendation: visible count + 2.*
+9. **Logo or picture.** *Recommendation: none.* If needed, offer the options
+   from design-rules.md ("Logo and photos"): a picture can only be baked in,
+   and Loader in titles is not verified yet.
 
-## C. Стиль
+## C. Style
 
-10. **Цвета.** Палитра с картинки или фирменные HEX? Какие цвета вынести в
-    Inspector? *Рекомендация: с картинки; фон, основной текст и акцент.*
-11. **Эффекты.** Тень · обводка · glass/blur · свечение. *Рекомендация: как на
-    картинке, без glass.* Тень и свечение пока не проверены (тест 10).
+10. **Colors.** Palette from the image or brand HEX? Which colors go to the
+    Inspector? *Recommendation: from the image; background, main text, accent.*
+11. **Effects.** Shadow · outline · glass/blur · glow. *Recommendation: as in
+    the image, no glass.* Shadow and glow are not verified (test 10).
 
-## D. Анимация
+## D. Animation
 
-12. **Появление.** Выезд снизу с фейдом · только фейд · scale · без анимации.
-    *Рекомендация: выезд снизу и фейд, 12 кадров.*
-13. **Исчезновение.** Затухание после паузы · зеркальное · без исчезновения.
-    *Рекомендация: затухание через паузу 90 кадров (3 с при 30 fps) после
-    полного появления, 10 кадров.* Пауза и длительность будут в Inspector.
-    Пока не подтверждено, что работают выражения (тест 7): при «keys»
-    исчезновения нет.
-14. **Управление анимацией в Inspector.** *Рекомендация: вкл/выкл, длительность
-    в кадрах, высота выезда.*
+12. **Entrance.** Slide up with fade · fade only · scale · none.
+    *Recommendation: slide up and fade, 12 frames.*
+13. **Exit.** Fade after a hold · mirrored · none.
+    *Recommendation: fade after a 90-frame hold (3 s at 30 fps) once the
+    entrance is complete, 10 frames.* Hold and duration go to the Inspector.
+14. **Animation controls in the Inspector.** *Recommendation: on/off, start,
+    speed, hold, fade length.*
 
-## E. Установка
+## E. Install
 
-15. **Название группы.** Это папка в Templates, под этим именем шаблоны
-    будут видны в Resolve. *Рекомендация: имя проекта или канала.*
-16. **Название шаблона** (и вариантов). *Рекомендация: по содержимому,
-    например «Lower Third», «Lower Third Accent».*
-17. **Версия, сборка Resolve и ОС.** На macOS не спрашивай, а определи сам:
-    `install_macos.sh --detect`. Сообщи результат, например: «Вижу Resolve
-    21.2 из App Store, поставлю в его контейнер». Спрашивай «App Store или
-    с сайта Blackmagic?» только если скрипт ничего не нашёл. Найдены обе
-    сборки: ставь в обе. *Рекомендация: Resolve 21, macOS.* Для Windows и
-    Linux предупреди, что путь установки не проверен.
+15. **Group name.** The folder in Templates; templates appear in Resolve
+    under this name. *Recommendation: the project or channel name.*
+16. **Template name** (and variants). *Recommendation: from the content,
+    e.g. "Lower Third", "Lower Third Accent".*
+17. **Resolve version, build and OS.** On macOS don't ask — detect:
+    `install_macos.sh --detect`, and report it (e.g. "Resolve 21.2 from the
+    App Store, installing into its container"). Ask "App Store or Blackmagic
+    website?" only if nothing was found. Both found: install into both.
+    *Recommendation: Resolve 21, macOS.* For Windows and Linux warn that the
+    install path is not verified.
 
-## После вопросов
+## After the questions
 
-Покажи сводку: ответы, допущения и то, что увидел на картинке. Затем покажи
-спецификацию (шаг 3 в SKILL.md) и жди подтверждения.
+Show a summary: answers, assumptions and what you saw in the image. Then
+show the spec (step 3 in SKILL.md) and wait for confirmation.
