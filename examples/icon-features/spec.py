@@ -8,6 +8,7 @@ import sys
 
 sys.path.insert(0, os.path.expanduser("~/.claude/skills/davinci-resolve-templates/scripts"))
 import fusion_lib as fl  # noqa: E402
+from fusion_anim import Timeline, clamp01  # noqa: E402
 from fusion_lib import Publish, background, merge, publish_color, text, transform  # noqa: E402
 
 GROUP = "Prog-time"
@@ -43,11 +44,8 @@ VARIANTS = {
     ),
 }
 
-CTRL = "XfBlock"
-
-
-def clamp01(e):
-    return f"min(1, max(0, {e}))"
+tl = Timeline("XfBlock", speed=False)
+CTRL = tl.C
 
 
 def build(v, anim="expr"):
@@ -80,10 +78,8 @@ def build(v, anim="expr"):
             ring.set(f"TopLeft{ch}", ring.inputs[f"TopLeft{ch}"].value, expr=f"TxtIcon1.{ch}1")
         add(merge(f"MrgRing{i}", f"BgCol{i}", f"BgRing{i}"))
         add(merge(f"MrgIcon{i}", f"MrgRing{i}", f"TxtIcon{i}"))
-        # Center stays (0.5, 0.5) = no offset; Pivot = ring center so pop scales in place
-        pop = add(transform(f"XfPop{i}", f"MrgIcon{i}", pivot=(fl.fx(cx), fl.fy(RING_CY))))
-        # easeOutBack: 1 + 2.70158*(p-1)^3 + 1.70158*(p-1)^2
-        pop.set("Size", 1.0, expr=f"iif({CTRL}.AnimOn > 0.5, max(0.001, 1 + 2.70158*({p}-1)^3 + 1.70158*({p}-1)^2), 1)")
+        add(transform(f"XfPop{i}", f"MrgIcon{i}", pivot=fl.pt((cx, RING_CY)))).set(   # easeOutBack pop
+            "Size", 1.0, expr=tl.on(f"max(0.001, 1 + 2.70158*({p}-1)^3 + 1.70158*({p}-1)^2)"))
 
         # label: slide up + fade
         lb = add(text(f"TxtLabel{i}", label, cx, LABEL_TOP, LABEL_PX, v["label"], font="Inter",
@@ -91,39 +87,22 @@ def build(v, anim="expr"):
         if i > 1:
             lb.follow_color("TxtLabel1")
             lb.set("LineSpacing", LINE_SPACING, expr="TxtLabel1.LineSpacing")
-        slide = add(transform(f"XfSlide{i}", f"TxtLabel{i}"))
-        slide.set("Center", (0.5, 0.5),
-                  expr=f"Point(0.5, 0.5 - iif({CTRL}.AnimOn > 0.5, 0.03*(1-{q})^3, 0))")
+        add(transform(f"XfSlide{i}", f"TxtLabel{i}")).set(
+            "Center", (0.5, 0.5), expr=f"Point(0.5, 0.5 - iif({CTRL}.AnimOn > 0.5, 0.03*(1-{q})^3, 0))")
 
-        # column = icon (fades in fast with pop) + label (fades with slide)
-        add(merge(f"MrgColIcon{i}", f"BgCol{i}", f"XfPop{i}")).set(
-            "Blend", 1.0, expr=f"iif({CTRL}.AnimOn > 0.5, min(1, 4*{p}), 1)")
-        add(merge(f"MrgColLabel{i}", f"MrgColIcon{i}", f"XfSlide{i}")).set(
-            "Blend", 1.0, expr=f"iif({CTRL}.AnimOn > 0.5, {q}, 1)")
-        col = add(transform(f"XfCol{i}", f"MrgColLabel{i}"))
-        col.set("Center", (0.5, 0.5), expr=f"Point(0.5 + {k - 1}*({CTRL}.ColGap - {round(GAP / FW, 5)}), 0.5)")
+        # column = icon (fades in fast with pop) + label (fades with slide), shifted by ColGap
+        add(merge(f"MrgColIcon{i}", f"BgCol{i}", f"XfPop{i}")).set("Blend", 1.0, expr=tl.on(f"min(1, 4*{p})"))
+        add(merge(f"MrgColLabel{i}", f"MrgColIcon{i}", f"XfSlide{i}")).set("Blend", 1.0, expr=tl.on(q))
+        add(transform(f"XfCol{i}", f"MrgColLabel{i}")).set(
+            "Center", (0.5, 0.5), expr=f"Point(0.5 + {k - 1}*({CTRL}.ColGap - {round(GAP / FW, 5)}), 0.5)")
         stack = add(merge(f"MrgCol{i}", stack, f"XfCol{i}")).name
 
-    blk = add(transform(CTRL, stack))
-    ctrls = [
+    _, out = tl.output(add, stack, [
         ("ColGap", "Column Gap", round(GAP / FW, 5), dict(INP_MinScale=0.05, INP_MaxScale=0.5)),
-        ("AnimStart", "Anim Start", 0, dict(INP_Integer=True, INP_MinScale=0, INP_MaxScale=120)),
+        "AnimStart",
         ("Stagger", "Stagger", 8, dict(INP_Integer=True, INP_MinScale=0, INP_MaxScale=30, INP_MinAllowed=0)),
         ("PopFrames", "Pop Frames", 10, dict(INP_Integer=True, INP_MinScale=1, INP_MaxScale=40, INP_MinAllowed=1)),
-        ("OutFrames", "Out Frames", 10, dict(INP_Integer=True, INP_MinScale=1, INP_MaxScale=60, INP_MinAllowed=1)),
-    ]
-    for cid, lbl, default, extra in ctrls:
-        blk.set(cid, default)
-        blk.user_control(cid, LINKS_Name=lbl, LINKID_DataType="Number", INPID_InputControl="SliderControl",
-                         INP_Default=default, ICS_ControlPage="Controls", **extra)
-    for cid, lbl in (("AnimOn", "Animation"), ("OutOn", "Fade Out")):
-        blk.set(cid, 1)
-        blk.user_control(cid, LINKS_Name=lbl, LINKID_DataType="Number", INPID_InputControl="CheckboxControl",
-                         INP_Integer=False, INP_Default=1, CBC_TriState=False, ICS_ControlPage="Controls")
-
-    add(background("BgOut", "#000000", alpha=0.0))
-    out = add(merge("MrgOut", "BgOut", CTRL))
-    out.set("Blend", 1.0, expr=f"iif({CTRL}.OutOn > 0.5, {clamp01(f'(comp.RenderEnd - time)/{CTRL}.OutFrames')}, 1)")
+        "OutFrames"], fade="clip_end")
     fl.layout(tools)
 
     g = iter(range(1, 100))
@@ -139,12 +118,8 @@ def build(v, anim="expr"):
              Publish(CTRL, "ColGap", "Расстояние между колонками")]
     for i in range(1, 4):
         pubs += fl.publish_font(f"TxtLabel{i}", f"Колонка {i}: шрифт", next(g))
-    pubs += [Publish(CTRL, "AnimOn", "Анимация вкл."),
-             Publish(CTRL, "AnimStart", "Анимация: старт, кадр"),
-             Publish(CTRL, "Stagger", "Анимация: задержка между колонками"),
-             Publish(CTRL, "PopFrames", "Анимация: pop, кадров"),
-             Publish(CTRL, "OutOn", "Выход вкл."),
-             Publish(CTRL, "OutFrames", "Выход, кадров"),
-             Publish(CTRL, "Center", "Позиция"),
-             Publish(CTRL, "Size", "Масштаб")]
+    pubs += tl.publish([("AnimOn", "Анимация вкл."), ("AnimStart", "Анимация: старт, кадр"),
+                        ("Stagger", "Анимация: задержка между колонками"), ("PopFrames", "Анимация: pop, кадров"),
+                        ("OutOn", "Выход вкл."), ("OutFrames", "Выход, кадров"),
+                        ("Center", "Позиция"), ("Size", "Масштаб")])
     return tools, pubs, out.name

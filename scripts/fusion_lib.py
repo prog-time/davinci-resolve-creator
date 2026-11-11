@@ -49,6 +49,11 @@ def fy(py):
     return round(1 - py / FRAME_H, 5)
 
 
+def pt(xy):
+    """(x, y) in frame px (Y from the top) -> normalized Fusion point."""
+    return (fx(xy[0]), fy(xy[1]))
+
+
 def hex_rgb(h):
     h = h.lstrip("#")
     return tuple(round(int(h[i:i + 2], 16) / 255, 4) for i in (0, 2, 4))

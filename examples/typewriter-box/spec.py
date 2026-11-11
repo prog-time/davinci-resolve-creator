@@ -10,6 +10,7 @@ import sys
 
 sys.path.insert(0, os.path.expanduser("~/.claude/skills/davinci-resolve-templates/scripts"))
 import fusion_lib as fl  # noqa: E402
+from fusion_anim import checkbox, slider  # noqa: E402
 from fusion_lib import Publish, background, merge, publish_color, rect_mask, text, transform  # noqa: E402
 
 GROUP = "Prog-time"
@@ -127,13 +128,8 @@ def build(v, anim="expr"):
         ("FadeFrames", "Fade Frames", 6, dict(INP_Integer=True, INP_MinScale=0, INP_MaxScale=60, INP_MinAllowed=0)),
     ]
     for cid, label, default, extra in controls:
-        card.set(cid, default)
-        card.user_control(cid, LINKS_Name=label, LINKID_DataType="Number", INPID_InputControl="SliderControl",
-                          INP_Default=default, ICS_ControlPage="Controls", **extra)
-    card.set("CursorOn", 1)
-    card.user_control("CursorOn", LINKS_Name="Cursor", LINKID_DataType="Number",
-                      INPID_InputControl="CheckboxControl", INP_Integer=False, INP_Default=1,
-                      CBC_TriState=False, ICS_ControlPage="Controls")
+        slider(card, cid, label, default, **extra)
+    checkbox(card, "CursorOn", "Cursor")
 
     out = add(merge("MrgOut", "MrgGrid", "XfCard"))
     out.set("Blend", 1.0, expr="iif(XfCard.FadeFrames < 1, 1, min(1, max(0, time/XfCard.FadeFrames)))")
