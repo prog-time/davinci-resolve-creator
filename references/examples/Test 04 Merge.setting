@@ -1,0 +1,62 @@
+{
+	Tools = ordered() {
+		Test04Merge = MacroOperator {
+			CtrlWZoom = false,
+			NameSet = true,
+			Inputs = ordered() {
+			},
+			Outputs = {
+				MainOutput1 = InstanceOutput { SourceOp = "MrgOut", Source = "Output", },
+			},
+			ViewInfo = GroupInfo { Pos = { 0, 0 } },
+			Tools = ordered() {
+				BgCanvas = Background {
+					CtrlWZoom = false,
+					Inputs = {
+						Width = Input { Value = 1920, },
+						Height = Input { Value = 1080, },
+						UseFrameFormatSettings = Input { Value = 1, },
+						["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+						TopLeftRed = Input { Value = 0.0, },
+						TopLeftGreen = Input { Value = 0.0, },
+						TopLeftBlue = Input { Value = 0.0, },
+						TopLeftAlpha = Input { Value = 0.0, },
+					},
+					ViewInfo = OperatorInfo { Pos = { 0, 0 } },
+				},
+				TxtTest = TextPlus {
+					CtrlWZoom = false,
+					Inputs = {
+						Width = Input { Value = 1920, },
+						Height = Input { Value = 1080, },
+						UseFrameFormatSettings = Input { Value = 1, },
+						["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+						Center = Input { Value = { 0.5, 0.5 }, },
+						StyledText = Input { Value = "ТЕСТ 4 MERGE", },
+						Font = Input { Value = "Inter", },
+						Style = Input { Value = "Regular", },
+						Size = Input { Value = 0.094257, },
+						HorizontalLeftCenterRight = Input { Value = 0, },
+						VerticalTopCenterBottom = Input { Value = 0, },
+						Red1 = Input { Value = 1.0, },
+						Green1 = Input { Value = 1.0, },
+						Blue1 = Input { Value = 1.0, },
+						Alpha1 = Input { Value = 1.0, },
+					},
+					ViewInfo = OperatorInfo { Pos = { 110, 0 } },
+				},
+				MrgOut = Merge {
+					CtrlWZoom = false,
+					Inputs = {
+						Background = Input { SourceOp = "BgCanvas", Source = "Output", },
+						Foreground = Input { SourceOp = "TxtTest", Source = "Output", },
+						PerformDepthMerge = Input { Value = 0, },
+						Blend = Input { Value = 1.0, },
+					},
+					ViewInfo = OperatorInfo { Pos = { 220, 0 } },
+				},
+			},
+		},
+	},
+	ActiveTool = "Test04Merge"
+}

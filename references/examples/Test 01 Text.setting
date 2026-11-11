@@ -1,0 +1,39 @@
+{
+	Tools = ordered() {
+		Test01Text = MacroOperator {
+			CtrlWZoom = false,
+			NameSet = true,
+			Inputs = ordered() {
+				Input1 = InstanceInput { SourceOp = "TxtTest", Source = "StyledText", Name = "Текст", },
+			},
+			Outputs = {
+				MainOutput1 = InstanceOutput { SourceOp = "TxtTest", Source = "Output", },
+			},
+			ViewInfo = GroupInfo { Pos = { 0, 0 } },
+			Tools = ordered() {
+				TxtTest = TextPlus {
+					CtrlWZoom = false,
+					Inputs = {
+						Width = Input { Value = 1920, },
+						Height = Input { Value = 1080, },
+						UseFrameFormatSettings = Input { Value = 1, },
+						["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+						Center = Input { Value = { 0.5, 0.5 }, },
+						StyledText = Input { Value = "ТЕСТ 1 TEXT", },
+						Font = Input { Value = "Inter", },
+						Style = Input { Value = "Regular", },
+						Size = Input { Value = 0.094257, },
+						HorizontalLeftCenterRight = Input { Value = 0, },
+						VerticalTopCenterBottom = Input { Value = 0, },
+						Red1 = Input { Value = 1.0, },
+						Green1 = Input { Value = 0.2, },
+						Blue1 = Input { Value = 0.2, },
+						Alpha1 = Input { Value = 1.0, },
+					},
+					ViewInfo = OperatorInfo { Pos = { 0, 0 } },
+				},
+			},
+		},
+	},
+	ActiveTool = "Test01Text"
+}
