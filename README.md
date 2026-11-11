@@ -63,6 +63,13 @@ examples/                specs of templates built with the skill
 docs/brief.md            original brief the skill was built from
 ```
 
+## Development
+
+```bash
+python3 -m pip install -r requirements-dev.txt
+python3 -m pytest -q tests
+```
+
 ## CI
 
 Every PR into `develop` runs independent jobs: SKILL.md lint, build of all
