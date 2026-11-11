@@ -56,6 +56,7 @@ scripts/
   setting_diff.py        semantic diff of two .setting files (refactor safety)
   generate.py            spec.py -> .setting + preview + .drfx [+ install]
   analyze_image.py       measurements from a reference image
+  fonts.py               find / check (cmap) / compare / install fonts, icon glyph codes
   video_frames.py        frames + motion timeline from a reference video
   pack_drfx.py           .setting -> .drfx
   install_macos.sh       install into the right Resolve build (--detect)
