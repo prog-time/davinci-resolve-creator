@@ -21,25 +21,25 @@ from pack_drfx import pack  # noqa: E402
 
 def t_text():
     t = text("TxtTest", "ТЕСТ 1 TEXT", 960, 540, 120, "#ff3333", h_anchor=0, v_anchor=0)
-    return [t], [Publish("TxtTest", "StyledText", "Текст")], "TxtTest", \
-        "красный текст «ТЕСТ 1 TEXT» по центру, кириллица читается"
+    return [t], [Publish("TxtTest", "StyledText", "Text")], "TxtTest", \
+        "red text \"ТЕСТ 1 TEXT\" centered, Cyrillic readable"
 
 
 def t_background():
-    return [background("BgTest", "#33ff33")], [], "BgTest", "весь кадр зелёный"
+    return [background("BgTest", "#33ff33")], [], "BgTest", "the whole frame is green"
 
 
 def t_mask():
     m = rect_mask("MaskTest", 960, 540, 600, 300, 0.2)
     return [m, background("BgTest", "#3366ff", mask="MaskTest")], [], "BgTest", \
-        "синий скруглённый прямоугольник 600×300 (ширина ровно в 2 раза больше высоты)"
+        "blue rounded rectangle 600x300 (width exactly 2x the height)"
 
 
 def t_merge():
     c = background("BgCanvas", "#000000", alpha=0.0)
     t = text("TxtTest", "ТЕСТ 4 MERGE", 960, 540, 120, "#ffffff", h_anchor=0, v_anchor=0)
     return [c, t, merge("MrgOut", "BgCanvas", "TxtTest")], [], "MrgOut", \
-        "белый текст, под ним видно видео с нижней дорожки (фон прозрачный)"
+        "white text, the video on the track below shows through (transparent background)"
 
 
 def t_mask_height():
@@ -52,15 +52,15 @@ def t_mask_height():
         tools.append(text(f"Txt{tag}", tag, x, 540, 120, "#000000", style="Bold", h_anchor=0, v_anchor=0))
         tools.append(merge(f"MrgTxt{tag}", f"MrgBg{tag}", f"Txt{tag}"))
         stack = f"MrgTxt{tag}"
-    return tools, [], stack, ("две полосы 800×200: ровно 4:1 должна быть B (голубая) — "
-                              "MASK_UNIT='height' проверен; A — сплющенная")
+    return tools, [], stack, ("two 800x200 stripes: B (cyan) must be exactly 4:1 — "
+                              "MASK_UNIT='height' is verified; A is squashed")
 
 
 def t_left_justify():
     t = text("TxtTest", "Первая строка подлиннее\nВторая\nТретья строка", 200, 300, 80, "#ffffff")
     c = background("BgCanvas", "#000000", alpha=0.0)
     return [c, t, merge("MrgOut", "BgCanvas", "TxtTest")], [], "MrgOut", \
-        "3 строки, все выровнены по ЛЕВОМУ краю, верх первой строки у точки (200, 300)"
+        "3 lines, all aligned LEFT, top of the first line at (200, 300)"
 
 
 def t_text_scale():
@@ -69,8 +69,8 @@ def t_text_scale():
     r = background("BgRuler", "#ff3333", mask="MaskRuler")
     t = text("TxtTest", "Hxg", 900, 540, 100, "#ffffff", v_anchor=0)
     tools = [c, m, r, merge("MrgRuler", "BgCanvas", "BgRuler"), t, merge("MrgOut", "MrgRuler", "TxtTest")]
-    return tools, [], "MrgOut", ("красная планка 100 px и текст Size=100px. Сравните высоту «H» с планкой "
-                                 "и запишите отношение в verified.md (калибровка Text+ Size)")
+    return tools, [], "MrgOut", ("red 100 px ruler and text at Size=100px. Compare the height of \"H\" with the ruler "
+                                 "and record the ratio in verified.md (Text+ Size calibration)")
 
 
 def _box():
@@ -85,16 +85,16 @@ def t_anim_expr():
     xf = fl.transform("XfCtl", "MrgBox")
     fl.add_anim_controls(xf, frames=24, slide=0.2)
     anim, out = fl.animation("XfCtl", "XfCtl", mode="expr")
-    return tools + [xf] + anim, [Publish("XfCtl", "AnimFrames", "Кадров")], out, \
-        ("розовый квадрат: на первом кадре прозрачный, за 24 кадра выезжает снизу и проявляется; "
-         "в конце клипа уходит обратно. Середина клипа — неподвижен по центру")
+    return tools + [xf] + anim, [Publish("XfCtl", "AnimFrames", "Frames")], out, \
+        ("pink square: transparent on the first frame, slides up and fades in over 24 frames; "
+         "slides back out at the end of the clip. Mid-clip it is still, centered")
 
 
 def t_anim_keys():
     tools = _box()
     anim, out = fl.animation("MrgBox", None, mode="keys", frames=24, slide=0.2)
     return tools + anim, [], out, \
-        "как тест 7, но только появление (ключевые кадры); в конце клипа не исчезает"
+        "like test 7 but entrance only (keyframes); does not leave at the clip end"
 
 
 def t_shapes():
@@ -103,7 +103,7 @@ def t_shapes():
     sm = fl.s_merge("ShpMerge", ["ShpRect", "ShpEllipse"])
     sr = fl.s_render("ShpRender", "ShpMerge")
     return [r, e, sm, sr], [], "ShpRender", \
-        "жёлтый прямоугольник 400×200 слева и голубой КРУГ 200×200 справа"
+        "yellow 400x200 rectangle on the left and a cyan 200x200 CIRCLE on the right"
 
 
 def t_shadow():
@@ -116,13 +116,13 @@ def t_shadow():
               text("TxtGlow", "GLOW", 960, 860, 120, "#ff6600", style="Bold", h_anchor=0, v_anchor=0),
               fl.soft_glow("FxGlow", "TxtGlow", threshold=0.0, gain=2.0, size=20),
               merge("MrgOut", "MrgCard", "FxGlow")]
-    return tools, [], "MrgOut", "белая карточка с мягкой тенью вниз на сером; ниже оранжевое «GLOW» со свечением"
+    return tools, [], "MrgOut", "white card with a soft downward shadow on grey; below it an orange \"GLOW\" with a glow"
 
 
 def t_font_group():
-    t = text("TxtTest", "Шрифт", 960, 540, 140, "#ffffff", h_anchor=0, v_anchor=0)
-    pubs = [Publish("TxtTest", "StyledText", "Текст")] + fl.publish_font("TxtTest", "Шрифт", 1)
-    return [t], pubs, "TxtTest", "в Inspector поля Font и Style стоят рядом в одной группе «Шрифт»"
+    t = text("TxtTest", "Шрифт Font", 960, 540, 140, "#ffffff", h_anchor=0, v_anchor=0)
+    pubs = [Publish("TxtTest", "StyledText", "Text")] + fl.publish_font("TxtTest", "Font", 1)
+    return [t], pubs, "TxtTest", "in the Inspector, Font and Style sit side by side in one group \"Font\""
 
 
 def t_ring():
@@ -131,8 +131,8 @@ def t_ring():
     r = background("BgRing", "#ff3399", mask="MaskRing")
     t = text("TxtIcon", "\ue2c2", 960, 540, 200, "#ffffff", font="Phosphor-Thin", h_anchor=0, v_anchor=0)
     tools = [c, m, r, merge("MrgRing", "BgCanvas", "BgRing"), t, merge("MrgOut", "MrgRing", "TxtIcon")]
-    return tools, [], "MrgOut", ("розовое КОЛЬЦО Ø400 с толщиной ~8 px (не круг), внутри белая "
-                                 "иконка-домик Phosphor Thin по центру")
+    return tools, [], "MrgOut", ("pink RING Ø400, ~8 px thick (not a disc), a white "
+                                 "Phosphor Thin house icon centered inside")
 
 
 TESTS = [

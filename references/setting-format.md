@@ -1,8 +1,8 @@
-# Формат .setting и .drfx
+# .setting and .drfx format
 
 ## .setting
 
-Fusion-макрос — это Lua-таблица:
+A Fusion macro is a Lua table:
 
 ```lua
 {
@@ -10,20 +10,20 @@ Fusion-макрос — это Lua-таблица:
     MyTitle = MacroOperator {
       CtrlWZoom = false,
       NameSet = true,
-      Inputs = ordered() {          -- опубликованные параметры (Inspector)
-        Input1 = InstanceInput { SourceOp = "TxtTitle", Source = "StyledText", Name = "Заголовок", },
-        Input2 = InstanceInput { SourceOp = "TxtTitle", Source = "Red1", Name = "Цвет", ControlGroup = 1, },
+      Inputs = ordered() {          -- published controls (Inspector)
+        Input1 = InstanceInput { SourceOp = "TxtTitle", Source = "StyledText", Name = "Title", },
+        Input2 = InstanceInput { SourceOp = "TxtTitle", Source = "Red1", Name = "Color", ControlGroup = 1, },
         Input3 = InstanceInput { SourceOp = "TxtTitle", Source = "Green1", ControlGroup = 1, },
-        -- Blue1, Alpha1 той же группы → одно цветовое поле
+        -- Blue1, Alpha1 in the same group -> one color field
       },
       Outputs = {
         MainOutput1 = InstanceOutput { SourceOp = "MrgOut", Source = "Output", },
       },
       ViewInfo = GroupInfo { Pos = { 0, 0 } },
-      Tools = ordered() {           -- ноды графа
+      Tools = ordered() {           -- graph nodes
         TxtTitle = TextPlus {
           Inputs = {
-            StyledText = Input { Value = "Текст", },
+            StyledText = Input { Value = "Text", },
             Center = Input { Value = { 0.5, 0.5 }, },
             Red1 = Input { Value = 1, Expression = "TxtMaster.Red1", },
             EffectMask = Input { SourceOp = "MaskX", Source = "Mask", },
@@ -38,32 +38,39 @@ Fusion-макрос — это Lua-таблица:
 }
 ```
 
-- Input может хранить значение (`Value`), выражение (`Expression`) или связь
+- An Input holds a value (`Value`), an expression (`Expression`) or a link
   (`SourceOp` + `Source`).
-- Ключи с точкой пишутся в скобках: `["Gamut.SLogVersion"] = ...`.
-- Перечисления задаются как `FuID { "Vertical" }`.
-- Эффекты (Effects) получают вход клипа через
+- Keys with a dot are bracketed: `["Gamut.SLogVersion"] = ...`.
+- Enums are `FuID { "Vertical" }`.
+- Effects get the clip input via
   `MainInput1 = InstanceInput { SourceOp = "XfIn", Source = "Input" }`
-  (`main_input` в `fl.macro`). Не проверено.
+  (`main_input` in `fl.macro`). Not verified.
+- A Loader keeps its file in a `Clips = { Clip { Filename = ..., ... } }`
+  block (`fl.loader`). Not verified in titles.
 
-## Координаты
+## Coordinates
 
-- `Center` — доли кадра, (0,0) внизу слева, Y вверх. Хелперы `fx(px)`,
-  `fy(py)` переводят px (Y сверху) в эти доли.
-- `RectangleMask.Width` — доля ширины кадра, `Height` — доля **высоты**
-  кадра (проверено). `CornerRadius` 0..1.
-- `TextPlus.Size` = `px / FRAME_W × TEXT_SIZE_K` (1.51 для Inter, проверено);
-  для других шрифтов проверь тестом 11.
-- Shapes (`sRectangle`, `sEllipse`): начало координат в центре кадра,
-  единицы — ширина кадра, Y вверх. Не проверено.
+- `Center` is a fraction of the frame, (0,0) bottom left, Y up. Helpers
+  `fx(px)`, `fy(py)` convert px (Y from the top).
+- `RectangleMask.Width` is a fraction of frame width, `Height` of frame
+  **height** (verified). `EllipseMask`: both of frame **width** (verified).
+  `CornerRadius` 0..1.
+- `TextPlus.Size` = `em_px / FRAME_W × (asc+desc)/upm / 0.8023` (verified for
+  Inter and Phosphor; `fl.text_size_k()`).
+- `Transform.Center` is an offset (0.5 = no move); scale/rotate around a
+  point with `Pivot` (verified).
+- Shapes (`sRectangle`, `sEllipse`): origin at the frame center, units of
+  frame width, Y up. Not verified.
 
-## Выражения
+## Expressions
 
-Выражения пишутся в синтаксисе Fusion (простой Lua): `time`, `comp.RenderEnd`,
-`iif(cond, a, b)`, `min`, `max`, `Point(x, y)`, ссылки `Node.Input`,
-`Node.Center.X`. Всё это не проверено (тест 7).
+Fusion expressions are Lua: `time`, `iif(cond, a, b)`, `min`, `max`,
+`Point(x, y)`, references `Node.Input`, `Node.Center.X`. A multi-line
+expression starts with `:` and ends with `return ...`; `Text(s)` returns a
+value for `StyledText`. Verified except `comp.RenderEnd` and `math.*`
+(tests 7, 15).
 
-## Ключевые кадры
+## Keyframes
 
 ```lua
 MrgOutBlend = BezierSpline {
@@ -74,38 +81,39 @@ MrgOutBlend = BezierSpline {
     [12] = { 1, LH = { 8, 1 } },
   }
 },
--- в ноде: Blend = Input { SourceOp = "MrgOutBlend", Source = "Value", },
--- Point-вход: XYPath { Inputs = { X = Input{SourceOp=...}, Y = ... } }
+-- in the node: Blend = Input { SourceOp = "MrgOutBlend", Source = "Value", },
+-- Point input: XYPath { Inputs = { X = Input{SourceOp=...}, Y = ... } }
 ```
 
-Не проверено (тест 8).
+Not verified (test 8).
 
 ## .drfx
 
-`.drfx` — это zip, пути внутри повторяют структуру папки Templates:
+A `.drfx` is a zip whose paths mirror the Templates folder:
 
 ```
-Edit/Titles/<Группа>/<Имя>.setting
-Edit/Titles/<Группа>/<Имя>.png      ← превью (опционально)
-Edit/Generators/<Группа>/...
-Edit/Effects/<Группа>/...
+Edit/Titles/<Group>/<Name>.setting
+Edit/Titles/<Group>/<Name>.png      <- preview (optional)
+Edit/Generators/<Group>/...
+Edit/Effects/<Group>/...
 ```
 
-Группа — это папка. Под её именем шаблоны видны в Effects Library.
+The group is a folder; templates appear under its name in the Effects
+Library.
 
-## Пути установки
+## Install paths
 
-| ОС | Папка Templates | Статус |
+| OS | Templates folder | Status |
 |---|---|---|
-| macOS, App Store (в `.app` есть `Contents/_MASReceipt`) | `~/Library/Containers/<bundle id>/Data/Library/Application Support/Fusion/Templates` — `.drfx` кладётся целиком | проверено (21.2, `DaVinciResolveLite`) |
-| macOS, сайт Blackmagic | `~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/Templates` — unzip | не проверено |
-| Windows | `%APPDATA%\Blackmagic Design\DaVinci Resolve\Support\Fusion\Templates` | не проверено |
-| Linux | `~/.local/share/DaVinciResolve/Fusion/Templates` | не проверено |
+| macOS, App Store (`.app` contains `Contents/_MASReceipt`) | `~/Library/Containers/<bundle id>/Data/Library/Application Support/Fusion/Templates` — the `.drfx` is kept whole | verified (21.2, `DaVinciResolveLite`) |
+| macOS, Blackmagic website | `~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/Templates` — unzip | not verified |
+| Windows | `%APPDATA%\Blackmagic Design\DaVinci Resolve\Support\Fusion\Templates` | not verified |
+| Linux | `~/.local/share/DaVinciResolve/Fusion/Templates` | not verified |
 
-Какая сборка установлена, покажет `scripts/install_macos.sh --detect`.
-Признак App Store-сборки — файл `Contents/_MASReceipt` внутри `.app`. Её
-bundle id задаёт имя контейнера. После установки Resolve нужно перезапустить.
+`scripts/install_macos.sh --detect` shows the installed builds. An App Store
+build has `Contents/_MASReceipt` inside the `.app`; its bundle id names the
+container. Resolve must be restarted after installing.
 
-Где искать: Edit → Effects → Toolbox → Titles → Fusion Titles → группа.
-Generators и Effects лежат в одноимённых разделах. Можно найти по поиску
-по имени.
+Where to find templates: Edit → Effects → Toolbox → Titles → Fusion Titles →
+group. Generators and Effects are in their own sections. Search by name also
+works.

@@ -1,153 +1,166 @@
-# Правила построения шаблонов
+# Template design rules
 
-## Структура графа
+## Graph structure
 
-- Все элементы рисуются на полный кадр и собираются в стопку через `Merge`:
-  `stack = merge("MrgX", stack, "TxtX")`. Порядок нод определяет порядок слоёв.
-- Плашка строится из двух нод: `RectangleMask` и `Background` с `EffectMask`.
-  Обводка делается двумя плашками: внешняя цвета обводки, внутренняя на
-  `2 × толщина` меньше.
-- В конце графа стоят мастер-Transform `XfCard`, затем `fl.animation()`
-  (XfAnim, прозрачный BgCanvas, MrgOut). Выход макроса подключается к `MrgOut`.
-- Для расстановки нод в графе используй `fl.layout(tools)`.
+- Every element is drawn full-frame and stacked with `Merge`:
+  `stack = merge("MrgX", stack, "TxtX")`. Node order is layer order.
+- A badge is two nodes: `RectangleMask` and `Background` with `EffectMask`.
+  An outline is two badges: the outer one in the outline color, the inner
+  one `2 × thickness` smaller.
+- The graph ends with a master Transform (`XfCard` / `XfBlock`) and the
+  output merge `MrgOut` over a transparent background. The macro output is
+  `MrgOut`.
+- Use `fl.layout(tools)` to lay the nodes out in the flow view.
 
-## Единицы Fusion (проверено, см. verified.md)
+## Fusion units (verified, see verified.md)
 
-- `RectangleMask`: Width — от ширины кадра, Height — от высоты. `EllipseMask`:
-  оба от ширины. Используй `fl.rect_mask` / `fl.ellipse_mask`, не задавай руками.
-- `Transform.Center` — смещение (0.5 = на месте). Масштаб или поворот
-  вокруг элемента — через `pivot=`.
-- `Text+ Size` зависит от высоты строки шрифта. `fl.text()` пересчитывает
-  сам по файлу шрифта. Если шрифт не найден, берётся коэффициент Inter
-  (предупреди).
+- `RectangleMask`: Width is a fraction of frame width, Height of frame
+  **height**. `EllipseMask`: both are fractions of frame **width**. Use
+  `fl.rect_mask` / `fl.ellipse_mask`; never set them by hand.
+- `Transform.Center` is an offset (0.5 = no move). To scale or rotate around
+  an element, keep Center at 0.5 and pass `pivot=`.
+- `Text+ Size` depends on the font's line height. `fl.text()` converts from
+  the font file itself. If the font file is not found, Inter's factor is
+  used — warn about it.
 
-## Варианты вместо переключателя
+## Variants instead of a switch
 
-Если нужен «обычный / выделенный» стиль, генерируй 2 файла с разными
-дефолтами (`VARIANTS`). Переключатель на выражениях заблокировал бы цветовые
-поля: поле с выражением в Inspector не редактируется.
-Включаемые элементы (например, бейдж) делаются через `Merge.Blend` 0/1,
-опубликованный как «Бейдж: видимость (0/1)».
+For "regular / highlighted" styles generate 2 files with different defaults
+(`VARIANTS`). A switch built on expressions would lock the color fields: a
+field driven by an expression cannot be edited in the Inspector.
+Optional elements (e.g. a badge) use `Merge.Blend` 0/1, published as
+"Badge: visibility (0/1)".
 
-## Мастер-ноды
+## Master nodes
 
-- **Цвета.** Цвет публикуется на одной ноде (например `TxtHeading`). Остальные
-  ноды того же цвета повторяют его через `t.follow_color("TxtHeading")`
-  (выражения `TxtHeading.Red1` и т. д.). Публикуется только мастер.
-- **Общие параметры** (масштаб текста, шаг списка, анимация) задаются как
-  UserControls на мастер-Transform `XfCard` и публикуются через `Publish`.
-  Остальные ноды ссылаются на них: `XfCard.TextScale`, `XfCard.ListStep`.
+- **Colors.** A color is published on one node (e.g. `TxtHeading`). Other
+  nodes of the same color follow it with `t.follow_color("TxtHeading")`
+  (expressions `TxtHeading.Red1` etc.). Only the master is published.
+- **Shared parameters** (text scale, list step, animation) are UserControls
+  on the master Transform and are published with `Publish`. Other nodes
+  reference them: `XfCard.TextScale`, `XfCard.ListStep`.
 
-## Текст
+## Text
 
-- Text+ сам строки не переносит. Переносы ставятся `\n` в тексте. Для пунктов
-  списка нужен лимит длины (примерно 38 символов при 17 px на ширине 345 px).
-  **Сообщи пользователю лимит.**
-- Размер задаётся в px кадра, `Size = px / FRAME_W`. Добавляй ползунок
-  «Масштаб текста» (`scale_expr="XfCard.TextScale"`) для калибровки, пока
-  тест 11 не подтвердит масштаб.
-- Якоря: `h_anchor` -1/0/1 (лево/центр/право), `v_anchor` -1/0/1
-  (верх/центр/низ). Для списков: `v_anchor=0`, позиция по центру строки.
+- Text+ does not wrap lines. Line breaks are `\n` in the text. List items
+  need a length limit (about 38 characters at 17 px on 345 px width).
+  **Tell the user the limit.**
+- Pass sizes in frame px (em); `fl.text()` applies the calibrated factor.
+- Anchors: `h_anchor` -1/0/1 (left/center/right), `v_anchor` -1/0/1
+  (top/center/bottom). For lists: `v_anchor=0`, position at the line center.
+- Typing text: a source node `TxtXSrc` holds the published text (not
+  rendered); the display node `TxtX` types it with a multi-line Lua
+  expression that walks UTF-8 characters and returns `Text(...)` (see
+  `examples/typewriter-box`).
 
-## Иконки
+## Icons
 
-Подбирай шрифт под стиль картинки: **линейные** иконки — Phosphor
-(Thin/Light, MIT, `@phosphor-icons/web` на jsDelivr, семейство
-`Phosphor-Thin`); **заливные** — Font Awesome 6 Free Solid. Перед выбором
-отрисуй кандидатов рядом с оригиналом и сравни толщину линии. Tabler Icons
-(толщина линии 2/24 em) для тонких иконок слишком жирный. Код символа
-пиши в spec как `"\uXXXX"`, а не самим символом.
+Pick the font by the image style: **line** icons — Phosphor (Thin/Light,
+MIT, `@phosphor-icons/web` on jsDelivr, family `Phosphor-Thin`); **filled**
+icons — Font Awesome 6 Free Solid. Before choosing, render the candidates
+next to the reference and compare the stroke weight. Tabler Icons (2/24 em
+stroke) is too heavy for thin icons. Write the code point in the spec as
+`"\uXXXX"`, not the character itself.
 
-Иконка рисуется отдельной Text+ со шрифтом `Font Awesome 6 Free`, стиль
-`Solid`, текст — символ иконки (в спецификации пиши `"\uf00c"`). Пользователь
-меняет иконку так: fontawesome.com → иконка → Copy Glyph → вставить в поле
-«Пункт N: иконка». Предупреди, что подходят только Free-иконки стиля Solid.
+The icon is a separate Text+ with the icon font, the text being the glyph
+(e.g. `""` for Font Awesome). The user swaps it by copying the glyph on
+the icon site (fontawesome.com → Copy Glyph) into the "Item N: icon" field.
+Warn that only free icons of the installed style work.
 
-## Логотип и фото
+## Logo and photos
 
-Картинку можно вшить в шаблон: в spec задай `ASSETS = {"имя.png": "<исходник>"}`,
-а в графе используй `fl.loader("LdPhoto", fl.asset_path(GROUP, "имя.png"))`.
-`generate.py --install` скопирует файл в `Fusion/Assets/<группа>/` той сборки
-Resolve, которую найдёт (App Store читает только свой контейнер). Путь
-записывается в `.setting`, поэтому смена фото = пересборка. Фото заранее
-обрежь до квадрата 512×512 (по лицу), обрезку кругом делай через `EffectMask`
-у Merge. Не проверено (verified.md, п. 13–14).
+A picture can be baked into the template: set
+`ASSETS = {"name.png": "<source>"}` in the spec and use
+`fl.loader("LdPhoto", fl.asset_path(GROUP, "name.png"))` in the graph.
+`generate.py --install` copies the file into `Fusion/Assets/<group>/` of
+the Resolve build it finds (the App Store build reads only its container).
+The path is written into the `.setting`, so changing the photo means a
+rebuild. Crop the photo beforehand (e.g. 512×512 around the face); round it
+with an `EffectMask` on the Merge. Not verified (verified.md, items 13–14).
 
-**Декор, который не собрать из нод** (рваная бумага, текстуры, скотч,
-скрепки, стикеры, кнопки, маркерные линии): нарисуй его PNG-картинками
-скриптом `make_assets.py` в папке шаблона (Pillow, поворот и тень
-запекаются в картинку, размер в пикселях кадра). Общую раскладку вынеси в
-`geometry.py`, его читают и `make_assets.py`, и `spec.py`. Каждую часть
-ставь так: `Loader` → `Merge(Size=1, Center=позиция)` → `Transform`
-с анимацией (`pivot` = позиция). Тексты оставляй живыми Text+. Пример:
-`examples/scrapbook-note/` (не проверен в Resolve).
+**Decor that cannot be built from nodes** (torn paper, textures, tape,
+clips, sticky notes, pins, marker strokes): draw it as PNGs with a
+`make_assets.py` script next to the spec (Pillow; rotation and shadow are
+baked in; size in frame pixels). Put the shared layout into `geometry.py`,
+read by both `make_assets.py` and `spec.py`. Place each part as
+`Loader` → `Merge(Size=1, Center=position)` → `Transform` with the
+animation (`pivot` = position). Keep texts as live Text+. Example:
+`examples/scrapbook-note/` (not verified in Resolve).
 
-**Письмо от руки.** Text+ не рисует штрих пером. Имитация: `RectangleMask`
-с мягким краем (`soft`) в `EffectMask` у Text+. Ширина маски растёт слева
-направо от `C.TitleW` (ширину текста Text+ не знает, поэтому делай ползунок
-«ширина письма»), впереди едет иконка пера (FA `\uf304`, якорь
-низ-лево = кончик). Подчёркивание делай маркерной картинкой с такой же
-маской. Не проверено.
+**Handwriting.** Text+ cannot draw a pen stroke. Imitation: a
+`RectangleMask` with a soft edge (`soft`) as the Text+ `EffectMask`. The
+mask width grows left to right up to `C.TitleW` (Text+ does not know its
+width, so add a "writing width" slider); a pen icon rides the edge (FA
+``, bottom-left anchor = the tip). Draw an underline as a marker
+image revealed by the same kind of mask. Not verified.
 
-Другие варианты:
+Other options:
 
-1. Положить PNG логотипа на дорожку над титром (самый надёжный).
-2. Логотип иконочным шрифтом, если он там есть (например, brands в FA).
-3. Сделать шаблон типа Effect: он накладывается на клип с логотипом
-   (`main_input`), но это не проверено.
+1. Put the logo PNG on a track above the title (most reliable).
+2. Use an icon font glyph if the logo exists there (e.g. FA brands).
+3. Make an Effect template applied to the logo clip (`main_input`); not
+   verified.
 
-## Имена нод
+## Node names
 
-- Имена уникальные, латиница, понятные, с префиксом типа: `Txt*` (Text+),
-  `Bg*` (Background), `Mask*` (RectangleMask), `Mrg*` (Merge), `Xf*`
-  (Transform), `Shp*` (shapes), `Fx*` (эффекты).
-- Служебные слова (`Name`, `Input`, `Output`, `Text`, `Point`, `time`,
-  `comp` и т. п.) и имена типов нод запрещены. `fl.macro()` проверяет имена,
-  ссылки и публикации и падает с понятной ошибкой.
+- Names are unique, ASCII, readable, with a type prefix: `Txt*` (Text+),
+  `Bg*` (Background), `Mask*` (masks), `Mrg*` (Merge), `Xf*` (Transform),
+  `Ld*` (Loader), `Shp*` (shapes), `Fx*` (effects).
+- Reserved words (`Name`, `Input`, `Output`, `Text`, `Point`, `time`,
+  `comp`, …) and node type names are forbidden. `fl.macro()` checks names,
+  references and publishes and fails with a clear error.
 
 ## Inspector
 
-- Подписи пишутся на русском (или на языке пользователя) с префиксами
-  для группировки: «Пункт 3: текст», «Кнопка: фон».
-- Порядок `pubs` равен порядку полей в Inspector. Сначала тексты, потом цвета,
-  потом позиция, масштаб и анимация.
-- Цвет публикуется через `publish_color(..., group=N)`: 4 канала в одной
-  ControlGroup дают одно цветовое поле. У каждого цвета свой номер группы.
+- Labels are in the user's language, with prefixes for grouping:
+  "Item 3: text", "Button: background" (in Russian: «Пункт 3: текст»,
+  «Кнопка: фон»).
+- The order of `pubs` is the order of fields in the Inspector: texts first,
+  then fonts and sizes, colors, layout sliders, animation, position and
+  scale.
+- A color is published with `publish_color(..., group=N)`: 4 channels in one
+  ControlGroup make one color field. Each color gets its own group number.
 
-## Анимация
+## Animation
 
-- `ANIM = "expr"`: появление и исчезновение на выражениях, параметры в
-  Inspector. **Не проверено** (тест 7).
-- `ANIM = "keys"`: только появление, на ключевых кадрах. **Не проверено**
-  (тест 8). Это запасной вариант, если не работают выражения.
-- `ANIM = "static"`: без анимации, для бисекции.
-- **Затухание по умолчанию — после паузы, а не по концу клипа.** Контролы
-  на мастер-Transform: `OutOn`, `Hold` («Пауза перед затуханием, кадров»,
-  по умолчанию 90), `OutFrames`. Выражение на `MrgOut.Blend`:
+- `ANIM = "expr"`: entrance and exit on expressions, controls in the
+  Inspector. Expressions are verified (time, iif, min/max, Point, multi-line
+  Lua); `comp.RenderEnd` is not.
+- `ANIM = "keys"`: entrance only, on keyframes. **Not verified** (test 8).
+  A fallback if expressions fail.
+- `ANIM = "static"`: no animation, for bisection.
+- Standard master controls: `AnimOn`, `AnimStart`, `Speed` (all timings are
+  `(time - AnimStart) * Speed`), `OutOn`, `Hold`, `OutFrames`.
+- **Exit by default is a fade after a hold, not at the clip end.**
+  `Hold` ("Hold before fade, frames", default 90) and `OutFrames` on the
+  master Transform; expression on `MrgOut.Blend`:
   `iif(C.OutOn > 0.5, min(1, max(0, 1 - (time - (C.AnimStart + INTRO_END/C.Speed) - C.Hold)/C.OutFrames)), 1)`,
-  где `INTRO_END` — последний кадр появления. Так затухание не зависит от
-  длины клипа и от непроверенного `comp.RenderEnd`. Вариант «по концу клипа»
-  делай, только если пользователь его попросил.
-- **Всегда предупреждай:** на первом и последнем кадре клипа шаблон прозрачный.
-  Это анимация, а не «чёрный экран». Проверять нужно с плейхедом в середине клипа.
+  where `INTRO_END` is the last frame of the entrance. The fade then does
+  not depend on the clip length or on the unverified `comp.RenderEnd`. Build
+  an "at clip end" exit only if the user asks for it.
+- **Always warn:** the first and last frames of the clip are transparent.
+  That is the animation, not a "black screen". Check with the playhead in
+  the middle of the clip.
 
-## Шрифты
+## Fonts
 
-- **Всегда публикуй шрифт** каждой видимой текстовой ноды:
-  `fl.publish_font(node, "<Подпись>: шрифт", group)` и рядом
-  `Publish(node, "Size", "<Подпись>: размер")`. Text+ считает размер от
-  высоты строки шрифта, поэтому после смены шрифта текст может стать
-  крупнее или мельче. Предупреди об этом и покажи ползунок размера.
-- Если текст печатается через источник (`TxtXSrc` → `TxtX`), шрифт
-  публикуется на отображаемой ноде `TxtX`, а не на источнике.
+- **Always publish the font** of every visible text node:
+  `fl.publish_font(node, "<Label>: font", group)` and next to it
+  `Publish(node, "Size", "<Label>: size")`. Text+ sizes by the font's line
+  height, so after a font change the text may get bigger or smaller. Say so
+  and point to the size slider.
+- If a text is typed through a source node (`TxtXSrc` → `TxtX`), publish the
+  font on the display node `TxtX`, not on the source.
 
-Используй только установленные у пользователя шрифты. Проверяй перед
-генерацией: `system_profiler SPFontsDataType | grep -i "<font>"` (macOS) или
-`fc-list | grep -i "<font>"`. Нет нужного шрифта — предложи замену или попроси
-установить. Кириллица есть не во всех шрифтах.
+Use only fonts installed on the user's machine. Check before building:
+`system_profiler SPFontsDataType | grep -i "<font>"` (macOS) or
+`fc-list | grep -i "<font>"`. Missing font: offer a replacement or an install
+(free fonts: `@expo-google-fonts/<family>` on jsDelivr ships static TTFs).
+Not every font covers Cyrillic — check the cmap (e.g. Courier Prime does not;
+Courier New does).
 
-## Вертикальный кадр
+## Vertical frame
 
-Для 1080×1920 пропиши в спецификации `FRAME = (1080, 1920)` и
-`fl.set_frame(*FRAME)` до расчёта координат. Все px-хелперы (`fx`, `fy`,
-маски, текст) пересчитываются от него.
+For 1080×1920 set `FRAME = (1080, 1920)` in the spec and call
+`fl.set_frame(*FRAME)` before computing coordinates. All px helpers (`fx`,
+`fy`, masks, text) follow it.
