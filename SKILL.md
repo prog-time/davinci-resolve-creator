@@ -67,10 +67,16 @@ of `$SKILL_DIR` in every command. Put working files into the current project:
    ```
 
    The script prints fps and a motion timeline and builds a contact sheet.
-   Look at the sheet (Read), split the animation into stages, measure the
-   layout on a frame where everything is in place with `analyze_image.py`,
-   and track element sizes over frames (bbox by color) to get timings and
-   curves. Convert source frames to timeline frames:
+   Look at the sheet (Read), split the animation into stages and measure the
+   layout on a frame where everything is in place with `analyze_image.py`.
+   Then get timings and easing per element with `track.py` (bbox by color,
+   motion stages, closest curve, converted to timeline frames):
+
+   ```bash
+   python3 "$SKILL_DIR/scripts/track.py" ref.mov --el "card=#201f20:12" \
+     --el "photo=#4fa8c4:40@700,150,520,560" --fps-tl 30
+   ```
+ Convert source frames to timeline frames:
    `f_tl = (f_src − f_start) × fps_tl / fps_src` (ask for the timeline fps).
    Needs PyAV and Pillow. No ffmpeg needed; swift from Command Line Tools
    can be broken.

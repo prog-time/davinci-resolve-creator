@@ -54,6 +54,7 @@ scripts/
   generate.py            spec.py -> .setting + preview + .drfx [+ install]
   analyze_image.py       measurements from a reference image
   video_frames.py        frames + motion timeline from a reference video
+  track.py               per-element bbox tracking, motion stages, easing fit
   pack_drfx.py           .setting -> .drfx
   install_macos.sh       install into the right Resolve build (--detect)
   make_test_pack.py      diagnostic test pack (13 tests)
