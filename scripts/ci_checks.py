@@ -39,6 +39,7 @@ def check_skill():
     if not re.search(r"^allowed-tools:\n(  - \S+\n?)+", fm + "\n", re.M):
         errs.append("SKILL.md: allowed-tools list is missing")
     for ref in re.findall(r"`((?:references|scripts|templates|examples)/[^`*<>]+?)`", text):
+        ref = ref.split()[0]                     # `scripts/x.py --flag` -> scripts/x.py
         if not os.path.exists(os.path.join(ROOT, ref.rstrip("/"))):
             errs.append(f"SKILL.md: referenced path does not exist: {ref}")
     return errs
