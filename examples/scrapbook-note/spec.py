@@ -27,6 +27,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PARTS = ["paper", "polaroid_l", "polaroid_r", "clip_l", "clip_r", "tape", "sticky", "pin", "underline"]
 ASSETS = {f"sb-{p}.png": os.path.join(HERE, "assets", f"sb-{p}.png") for p in PARTS}
 INTRO_END = 140
+_TITLE = fl.measure_text("Важная встреча", "Caveat", "Bold", 120)
+TITLE_W = round(_TITLE + 24) if _TITLE else 720          # writing width: title + pen margin
+PAPER_RIGHT = G["paper_c"][0] + G["paper_w"] / 2
+FIT = [("TxtTitle", G["ul_w"]), ("TxtBody", PAPER_RIGHT - 50 - G["body_left"]), ("TxtSticky", 330)]
 
 VARIANTS = {
     "Scrapbook Note": dict(
@@ -176,7 +180,7 @@ def build(v, anim="expr"):
 
     blk = add(transform(C, stack))
     ctrls = [
-        ("TitleW", "Title Width", round(720 / FW, 4), dict(INP_MinScale=0.05, INP_MaxScale=0.8)),
+        ("TitleW", "Title Width", round(TITLE_W / FW, 4), dict(INP_MinScale=0.05, INP_MaxScale=0.8)),
         ("UnderLen", "Underline Length", round(G["ul_w"] / FW, 4), dict(INP_MinScale=0.05, INP_MaxScale=0.8)),
         ("AnimStart", "Anim Start", 0, dict(INP_Integer=True, INP_MinScale=0, INP_MaxScale=120)),
         ("Speed", "Speed", 1.0, dict(INP_MinScale=0.25, INP_MaxScale=4.0, INP_MinAllowed=0.05)),

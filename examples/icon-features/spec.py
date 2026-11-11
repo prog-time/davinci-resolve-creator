@@ -32,6 +32,8 @@ LINE_SPACING = 0.74               # 40 px step / 54 px natural line box (UNVERIF
 
 ICONS = {"armchair": "", "potted-plant": "", "palette": ""}
 
+FIT = [(f"TxtLabel{i}", GAP - 30) for i in (1, 2, 3)]
+
 VARIANTS = {
     "Icon Features": dict(
         ink="#3b3632", label="#161615",

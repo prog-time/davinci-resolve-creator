@@ -40,6 +40,8 @@ BTN_W, BTN_H = 243 * S, 51 * S
 LIKE = P(78.5, 241.5)
 BELL = P(469.5, 240.5)
 
+FIT = [("TxtBtnRed", BTN_W - 30), ("TxtBtnGray", BTN_W - 30)]
+
 VARIANTS = {
     "Subscribe Bar": dict(
         bar="#e6e6e6", like="#4a94d1", bell="#e8ac43", btn_red="#ff0000", btn_gray="#3e3e3e",
