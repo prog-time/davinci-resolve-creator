@@ -193,8 +193,18 @@ verified; say so.
 
 ### Step 6 — Check
 
-Ask for a screenshot from Resolve next to the reference. Fix differences in
-the spec and rebuild. Record calibration values and confirmed points in
+Ask for a screenshot from Resolve (the viewer at 100% or the full frame) and
+compare it with the reference element by element:
+
+```bash
+python3 "$SKILL_DIR/scripts/compare.py" ref.png resolve.png --scale <render px -> ref px> \
+  --el "card=#201f20:14" --el "title=#eaeaea:20@650,700,620,110" --out <scratch>/cmp
+```
+
+The report gives the common offset (move the whole template) and, per
+element, the remaining offset, width/height ratio and color; `diff.png` and
+`onion.png` show where. Fix differences in the spec by these numbers and
+rebuild. Record calibration values and confirmed points in
 `references/verified.md`.
 
 ## "Black screen" diagnostics
