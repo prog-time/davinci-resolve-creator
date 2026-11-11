@@ -1,18 +1,19 @@
 ---
 name: davinci-resolve-templates
 description: |
-  Генерация шаблонов DaVinci Resolve (Fusion .setting/.drfx) по картинке или
-  описанию: титры, плашки, lower thirds, карточки, генераторы с
-  редактируемыми параметрами в Inspector. Задаёт вопросы в стиле Grill Me,
-  собирает шаблон и устанавливает его в отдельную группу в Templates.
+  Generates DaVinci Resolve templates (Fusion .setting/.drfx) from an image,
+  a reference video or a description: titles, lower thirds, cards, badges,
+  generators with editable texts, fonts, colors and animation in the
+  Inspector. Asks Grill Me questions, builds the template and installs it
+  into its own group in Templates.
   Use ALWAYS when the user says "сделай шаблон для DaVinci", "шаблон для
   Resolve", "титр для давинчи", "плашка для Resolve", "lower third для
   DaVinci", "Fusion title", "сделай .drfx", "make a DaVinci Resolve
   template", "Resolve title template", "fusion macro", or sends a screenshot
   or reference video of a title/card/lower third and asks to recreate it in Resolve.
-  Do NOT use for: обычного монтажа, цветокоррекции, рендера и экспорта
-  видео, управления Resolve через скрипты/API, шаблонов для Premiere/After
-  Effects/CapCut, переходов (Transitions).
+  Do NOT use for: regular editing, color grading, rendering or exporting
+  video, controlling Resolve via scripts/API, Premiere/After Effects/CapCut
+  templates, transitions.
 allowed-tools:
   - Read
   - Write
@@ -23,83 +24,86 @@ allowed-tools:
 
 # davinci-resolve-templates
 
-Скилл превращает картинку или описание в Fusion-шаблон DaVinci Resolve
-(`.setting` в `.drfx`). У готового шаблона в Inspector меняются тексты,
-иконки, цвета, позиция и анимация. Скилл генерирует файлы и устанавливает
-их в отдельную группу в Templates. **Resolve скилл не запускает, не
-закрывает и не управляет им.**
+Turns an image, a video or a description into a DaVinci Resolve Fusion
+template (`.setting` packed into `.drfx`). Texts, icons, fonts, colors,
+position and animation of the result are editable in the Inspector. The skill
+generates the files and installs them into a separate group in Templates.
+**It never starts, stops or controls Resolve.**
 
-`SKILL_DIR` — базовая папка скилла (её путь показан при загрузке). Переменные
-между вызовами Bash не сохраняются, поэтому в каждой команде подставляй
-полный путь вместо `$SKILL_DIR`. Рабочие файлы
-пиши в текущий проект: `./resolve-templates/<slug>/` (спецификация `spec.py`,
-сборка в `out/`).
+**Language.** These instructions are in English, but talk to the user in the
+language of their request: questions, the spec, warnings and Inspector labels
+are in the user's language (Russian request → Russian answers and labels).
+Placeholder texts in templates follow the language the user chose.
+
+`SKILL_DIR` is the skill's base folder (shown when the skill loads). Shell
+variables do not persist between Bash calls, so write the full path instead
+of `$SKILL_DIR` in every command. Put working files into the current project:
+`./resolve-templates/<slug>/` (spec `spec.py`, build in `out/`).
 
 ## Workflow
 
-### Шаг 1 — Вход и анализ
+### Step 1 — Input and analysis
 
-1. Получи картинку или описание. Если нет ни того ни другого, первый вопрос:
-   «Что за элемент и где он появится в ролике?»
-2. Посмотри на картинку (Read) и сними замеры:
+1. Get the image or description. If there is neither, the first question is
+   "What element is it and where does it appear in the video?"
+2. Look at the image (Read) and measure it:
 
    ```bash
    python3 "$SKILL_DIR/scripts/analyze_image.py" ref.png --frame 1920x1080
-   python3 "$SKILL_DIR/scripts/analyze_image.py" ref.png --roi x,y,w,h      # элементы внутри карточки
+   python3 "$SKILL_DIR/scripts/analyze_image.py" ref.png --roi x,y,w,h      # elements inside a card
    python3 "$SKILL_DIR/scripts/analyze_image.py" ref.png --region x,y,w,h --sample x,y
    python3 "$SKILL_DIR/scripts/analyze_image.py" ref.png --crop x,y,w,h --zoom 4 --crop-out crop.png
    ```
 
-   Скрипт выдаёт фон, палитру, границы элементов, отступы и
-   `scale.factor` с формулой перевода в кадр. Цвета бери как медиану
-   региона, не по одному пикселю. Без Pillow скажи:
-   `python3 -m pip install --user pillow`. Если пользователь против, замеряй
-   на глаз по картинке и предупреди о точности.
-3. **Если на входе видео** (`.mov`, `.mp4`), сначала разложи его на кадры:
+   The script reports background, palette, element boxes, gaps and
+   `scale.factor` with the formula to map into the frame. Take colors as the
+   median of a region, not a single pixel. Without Pillow, tell the user:
+   `python3 -m pip install --user pillow`. If they decline, measure by eye
+   and warn about the precision.
+3. **If the input is a video** (`.mov`, `.mp4`), split it into frames first:
 
    ```bash
    python3 "$SKILL_DIR/scripts/video_frames.py" ref.mov --out <scratch>/frames
    ```
 
-   Скрипт печатает fps и таймлайн движения и собирает контактный лист.
-   Посмотри лист (Read), раздели анимацию на этапы, на кадре, где всё уже
-   на месте, сними вёрстку через `analyze_image.py`, а размеры элементов
-   по кадрам проследи (bbox по цвету), чтобы получить тайминги и кривые.
-   Кадры исходника пересчитывай в кадры таймлайна:
-   `f_tl = (f_src − f_start) × fps_tl / fps_src` (fps таймлайна спроси).
-   Нужны PyAV и Pillow. ffmpeg не нужен, swift из Command Line Tools
-   бывает сломан.
-4. Запиши, что увидел (тип, число элементов и вариантов, шрифт, иконки).
-   Эти пункты не превращаются в вопросы.
+   The script prints fps and a motion timeline and builds a contact sheet.
+   Look at the sheet (Read), split the animation into stages, measure the
+   layout on a frame where everything is in place with `analyze_image.py`,
+   and track element sizes over frames (bbox by color) to get timings and
+   curves. Convert source frames to timeline frames:
+   `f_tl = (f_src − f_start) × fps_tl / fps_src` (ask for the timeline fps).
+   Needs PyAV and Pillow. No ffmpeg needed; swift from Command Line Tools
+   can be broken.
+4. Write down what you saw (type, number of elements and variants, font,
+   icons). These points do not become questions.
 
-### Шаг 2 — Вопросы Grill Me
+### Step 2 — Grill Me questions
 
-Задай вопросы по `references/questions.md`, **по одному за сообщение**, к
-каждому приложи рекомендацию. Пропускай вопросы, ответ на которые виден на
-картинке или уже прозвучал. «Ок на всё» означает: взять рекомендации.
-Шрифты проверяй сам:
+Ask the questions from `references/questions.md`, **one per message**, each
+with a recommendation. Skip questions answered by the image or already
+answered. "OK to all" / «ок на всё» means: take the recommendations.
+Check fonts yourself:
 `system_profiler SPFontsDataType | grep -i "<font>"` (macOS) /
 `fc-list | grep -i "<font>"`.
 
-### Шаг 3 — Спецификация
+### Step 3 — Spec
 
-Покажи и **дождись подтверждения**:
+Show it and **wait for confirmation**:
 
-- таблицу слоёв: элемент · позиция (px) · размер · цвет HEX · шрифт/стиль;
-- список параметров Inspector в том порядке, в каком они будут показаны;
-- анимацию (режим, кадры, исчезновение);
-- группу, имена шаблонов и вариантов, тип (Titles/Generators/Effects);
-- ограничения: лимит символов в строке, прозрачность на первом и последнем
-  кадре, непроверенные функции из `references/verified.md`, которые
-  попадут в шаблон.
+- layer table: element · position (px) · size · HEX color · font/style;
+- Inspector controls in the order they will appear;
+- animation (mode, frames, exit);
+- group, template and variant names, type (Titles/Generators/Effects);
+- limits: characters per line, transparency on the first and last frame,
+  unverified features from `references/verified.md` used in the template.
 
-### Шаг 4 — Генерация
+### Step 4 — Build
 
-1. Прочитай `references/design-rules.md` и пример
-   `templates/pricing_card.py`.
-2. Напиши `./resolve-templates/<slug>/spec.py` по контракту:
+1. Read `references/design-rules.md` and the example
+   `templates/pricing_card.py` (more in `examples/`).
+2. Write `./resolve-templates/<slug>/spec.py` following the contract:
    `GROUP`, `CATEGORY`, `FRAME`, `ANIM`, `VARIANTS`,
-   `build(v, anim) -> (tools, pubs, output_name)`. Импорт библиотеки:
+   `build(v, anim) -> (tools, pubs, output_name)`. Import the library:
 
    ```python
    import sys, os
@@ -107,144 +111,145 @@ allowed-tools:
    import fusion_lib as fl
    ```
 
-3. Собери и упакуй:
+3. Build and pack:
 
    ```bash
    python3 "$SKILL_DIR/scripts/generate.py" resolve-templates/<slug>/spec.py \
      --out resolve-templates/<slug>/out --pack
    ```
 
-   `fl.macro()` проверяет имена нод, ссылки и публикации. `validate()`
-   проверяет скобки и строки, а также запускает `luac -p`, если он
-   установлен. Ошибки исправляй в spec, не в `.setting`.
-4. Открой превью `out/<Имя>.png` (Read) и сравни его с оригиналом. Превью
-   приблизительное: выражения и анимация в нём не учитываются.
+   `fl.macro()` checks node names, references and publishes. `validate()`
+   checks brackets and strings and runs `luac -p` when installed. Fix errors
+   in the spec, never in the `.setting`.
+4. Open the preview `out/<Name>.png` (Read) and compare it with the
+   reference. The preview is approximate: expressions and animation are not
+   evaluated.
 
-### Шаг 5 — Установка в отдельную группу
+### Step 5 — Install into its own group
 
-Группа задаётся путём внутри `.drfx`: `Edit/<Category>/<GROUP>/`.
+The group is the path inside the `.drfx`: `Edit/<Category>/<GROUP>/`.
 
-**На macOS есть две сборки Resolve, и они читают разные папки.** Шаблон,
-поставленный не в ту папку, просто не появится, без ошибок.
+**macOS has two Resolve builds and they read different folders.** A
+template installed into the wrong folder silently never appears.
 
-| Сборка | Как узнать | Куда ставить | Как |
+| Build | How to tell | Install into | How |
 |---|---|---|---|
-| **App Store** | в `.app` есть `Contents/_MASReceipt`; bundle id, например, `com.blackmagic-design.DaVinciResolveLite` | `~/Library/Containers/<bundle id>/Data/Library/Application Support/Fusion/Templates/` | `.drfx` копируется целиком |
-| **С сайта Blackmagic** | `_MASReceipt` нет | `~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/Templates/` | `.drfx` распаковывается (`Edit/…`) |
+| **App Store** | `.app` contains `Contents/_MASReceipt`; bundle id e.g. `com.blackmagic-design.DaVinciResolveLite` | `~/Library/Containers/<bundle id>/Data/Library/Application Support/Fusion/Templates/` | `.drfx` copied as is |
+| **Blackmagic website** | no `_MASReceipt` | `~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/Templates/` | `.drfx` unzipped (`Edit/…`) |
 
-1. Определи сборку (это же ответ на вопрос 17):
+1. Detect the build (this also answers question 17):
 
    ```bash
    bash "$SKILL_DIR/scripts/install_macos.sh" --detect
    ```
 
-2. Поставь. По умолчанию (`--target auto`) скрипт ставит во все найденные
-   сборки:
+2. Install. By default (`--target auto`) the script installs into every
+   build it finds:
 
    ```bash
    bash "$SKILL_DIR/scripts/install_macos.sh" "resolve-templates/<slug>/out/<PACK>.drfx"
    ```
 
-   Если ни одна сборка не найдена, спроси пользователя: «Resolve из App Store
-   или с сайта Blackmagic?». Затем укажи `--target appstore`, `website` или
+   If no build is found, ask the user: "Resolve from the App Store or from
+   the Blackmagic website?", then pass `--target appstore`, `website` or
    `all`.
-3. Если скрипт не может писать в папку, дай пользователю ту же команду для
-   Терминала с абсолютными путями. Запасной вариант: перетащить `.drfx` в
-   окно Resolve, тогда шаблон попадёт туда, откуда его читает именно эта
-   сборка.
+3. If the script cannot write to the folder, give the user the same command
+   for Terminal with absolute paths. Fallback: drag the `.drfx` into the
+   Resolve window; it then lands where this particular build reads it.
 
-Затем скажи:
+Then tell the user:
 
-1. Сохраните проект (Cmd+S) и закройте Resolve (Cmd+Q), потом откройте
-   снова. Не закрывай Resolve через `osascript`.
-2. Где искать: Edit → Effects → Toolbox → Titles → Fusion Titles → группа
-   `<GROUP>` (или поиск по имени).
-3. Плейхед ставьте в середину клипа: на первом и последнем кадре шаблон
-   прозрачный из-за анимации.
+1. Save the project (Cmd+S), quit Resolve (Cmd+Q) and start it again. Never
+   quit Resolve via `osascript`.
+2. Where to find it: Edit → Effects → Toolbox → Titles → Fusion Titles →
+   group `<GROUP>` (or search by name).
+3. Put the playhead in the middle of the clip: the first and last frames
+   are transparent because of the animation.
 
-Для Windows и Linux пути есть в `references/setting-format.md`. Они не
-проверены, предупреди об этом.
+Windows and Linux paths are in `references/setting-format.md`. They are not
+verified; say so.
 
-### Шаг 6 — Сверка
+### Step 6 — Check
 
-Попроси скриншот из Resolve рядом с оригиналом. Расхождения исправляй в
-spec и пересобирай. Калибровочные значения и подтверждённые пункты
-записывай в `references/verified.md`.
+Ask for a screenshot from Resolve next to the reference. Fix differences in
+the spec and rebuild. Record calibration values and confirmed points in
+`references/verified.md`.
 
-## Диагностика «чёрного экрана»
+## "Black screen" diagnostics
 
-Проходи по порядку:
+Go in order:
 
-1. Плейхед стоит в середине клипа, а не на первом кадре.
-2. Шаблон лежит там, откуда читает **эта** сборка Resolve (App Store или
-   сайт, см. шаг 5), и Resolve перезапущен. Проверь: если видны старые шаблоны
-   из той же группы, а новые нет, почти наверняка шаблон стоит не в той
-   папке.
-3. Пакет мини-тестов:
+1. The playhead is in the middle of the clip, not on the first frame.
+2. The template is where **this** Resolve build reads it (App Store or
+   website, see step 5) and Resolve was restarted. If older templates of the
+   same group are visible and new ones are not, the template is almost
+   certainly in the wrong folder.
+3. Test pack:
    `python3 "$SKILL_DIR/scripts/make_test_pack.py" --out out/tests` →
-   установить `DRT Tests.drfx`. Тесты: 01 Text (красный текст),
-   02 Background (зелёный кадр), 03 Rect Mask (синий прямоугольник 2:1),
-   04 Merge (белый текст на прозрачном фоне), 05 Mask Height, 06–12
-   (непроверенные функции, ожидания печатаются при сборке).
-4. Бисекция шаблона: `--anim static` (без выражений) → без Transform →
-   только фон. Первый сломанный шаг указывает на виновника.
-5. Попроси Workspace → Console и скриншот графа нод на странице Fusion.
+   install `DRT Tests.drfx`. Tests: 01 Text (red text), 02 Background (green
+   frame), 03 Rect Mask (blue 2:1 rectangle), 04 Merge (white text on a
+   transparent background), 05 Mask Height, 06–13 (unverified features;
+   expected results are printed at build time).
+4. Bisect the template: `--anim static` (no expressions) → no Transform →
+   background only. The first broken step points to the culprit.
+5. Ask for Workspace → Console and a screenshot of the node graph on the
+   Fusion page.
 
 ## Rules
 
-- Делай: один вопрос за раз, к каждому рекомендацию.
-- Делай: спецификацию до генерации, подтверждение до установки.
-- Делай: собирай варианты стиля отдельными файлами, а не переключателем.
-- Делай: публикуй цвет на мастер-ноде, остальные ноды следуют за ней (`follow_color`).
-- Делай: подписи Inspector на языке пользователя, с префиксами («Кнопка: фон»).
-- Делай: предупреждай о непроверенных функциях, лимите символов и прозрачности на краях клипа.
-- Делай: перед установкой определяй сборку Resolve (`install_macos.sh --detect`) и ставь в её папку. App Store читает только свой контейнер `~/Library/Containers/<bundle id>/…`, сборка с сайта читает только `~/Library/Application Support/Blackmagic Design/…`.
-- Делай: называй `.drfx` по шаблону (`PACK`), а не по группе. В App Store-сборке пакеты лежат в одной папке, и пакет с именем группы перезапишет соседний.
-- Не делай: не говори «установлено», не назвав сборку и папку, куда лёг шаблон.
-- Не делай: не запускай, не закрывай и не скриптуй Resolve.
-- Не делай: не правь `.setting` руками. Источник правды — `spec.py`.
-- Не делай: не используй шрифты, которых нет у пользователя.
-- Не делай: не используй служебные имена нод (`Name`, `Input`, `Text`…).
-- Не делай: не обещай переходы (Transitions) и поле выбора картинки в Inspector. Картинку можно только вшить через `ASSETS` + `fl.loader` (см. design-rules.md).
+- Do: one question at a time, each with a recommendation.
+- Do: spec before building, confirmation before installing.
+- Do: talk to the user in their language; Inspector labels in their language, with prefixes ("Button: background" / «Кнопка: фон»).
+- Do: build style variants as separate files, not a switch.
+- Do: publish a color on a master node; other nodes follow it (`follow_color`).
+- Do: warn about unverified features, character limits and transparency at the clip edges.
+- Do: detect the Resolve build before installing (`install_macos.sh --detect`) and install into its folder. The App Store build reads only its container `~/Library/Containers/<bundle id>/…`; the website build reads only `~/Library/Application Support/Blackmagic Design/…`.
+- Do: name the `.drfx` after the template (`PACK`), not the group. In the App Store build all packs share one folder, and a pack named after the group overwrites its neighbour.
+- Don't: say "installed" without naming the build and the folder.
+- Don't: start, quit or script Resolve.
+- Don't: edit `.setting` files by hand. The source of truth is `spec.py`.
+- Don't: use fonts the user does not have.
+- Don't: use reserved node names (`Name`, `Input`, `Text`…).
+- Don't: promise transitions or a file picker in the Inspector. An image can only be baked in via `ASSETS` + `fl.loader` (see design-rules.md).
 
 ## Examples
 
-### Пример 1 — плашка со скриншота
+### Example 1 — badge from a screenshot
 
-**User:** *(скриншот lower third)* сделай такой шаблон для давинчи
+**User:** *(lower third screenshot)* сделай такой шаблон для давинчи
 
-**Assistant:** Запускает `analyze_image.py` и пишет: «Увидел: lower third
-слева снизу, 2 строки (имя Bold, должность Regular), фон #1e1e1e с
-радиусом, акцентная полоска #ff5a1f». Затем задаёт вопросы по одному:
-«Вопрос 1/≈8. Варианты стиля? Рекомендую: один». После ответов показывает
-спецификацию, собирает, устанавливает в группу и объясняет, где искать
-шаблон.
+**Assistant (in Russian):** runs `analyze_image.py` and writes what it saw:
+lower third bottom left, 2 lines (name Bold, role Regular), background
+#1e1e1e with radius, accent stripe #ff5a1f. Then asks one question at a
+time («Вопрос 1/≈8. Варианты стиля? Рекомендую: один»). After the answers it
+shows the spec, builds, installs into the group and explains where to find
+the template.
 
-### Пример 2 — по описанию, «давай дефолты»
+### Example 2 — from a description, "use defaults"
 
-**User:** нужна карточка с заголовком и тремя пунктами с иконками, давай дефолты
+**User:** need a card with a title and three items with icons, use defaults
 
-**Assistant:** Берёт рекомендации (1920×1080, фикс 1 строка, FA6, выезд и
-фейд 12 кадров), спрашивает только название группы и показывает
-спецификацию.
+**Assistant:** takes the recommendations (1920×1080, fixed 1 line, FA6,
+slide-up and fade 12 frames), asks only for the group name and shows the
+spec.
 
-### Пример 3 — «чёрный экран»
+### Example 3 — "black screen"
 
 **User:** поставил шаблон, а там пусто
 
-**Assistant:** Спрашивает, где стоит плейхед. Затем идёт по диагностике:
-тестовый пакет, бисекция через `--anim static`.
+**Assistant (in Russian):** asks where the playhead is, then follows the
+diagnostics: test pack, bisection with `--anim static`.
 
 ## Edge Cases
 
-- **Вертикальное видео**: `FRAME = (1080, 1920)`, `fl.set_frame(*FRAME)`
-  в начале spec.
-- **Несколько элементов на картинке**: спроси про структуру (вопрос 3). Серия
-  одинаковых плашек — это один шаблон и копии на таймлайне.
-- **Нет шрифта или кириллицы в шрифте**: предложи замену (Inter) или установку.
-- **Выражения не работают в Resolve пользователя**: пересобери с `--anim keys`
-  и обнови verified.md.
-- **Нужен переход**: скажи, что скилл переходы не делает. Можно предложить
-  титр с анимацией появления и исчезновения.
-- **Нет Pillow**: превью не создаётся, анализ делается на глаз. Шаблон
-  при этом собирается.
+- **Vertical video**: `FRAME = (1080, 1920)`, `fl.set_frame(*FRAME)` at the
+  top of the spec.
+- **Several elements in the image**: ask about the structure (question 3).
+  A series of identical badges is one template plus copies on the timeline.
+- **Font missing or without Cyrillic**: offer a replacement (Inter) or an
+  install. Check Cyrillic coverage in the font's cmap, not by rendered width.
+- **Expressions do not work in the user's Resolve**: rebuild with
+  `--anim keys` and update verified.md.
+- **A transition is requested**: say the skill does not do transitions;
+  offer a title with in/out animation instead.
+- **No Pillow**: no preview, measurements by eye. The template still builds.
