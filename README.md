@@ -60,9 +60,29 @@ scripts/
   pack_drfx.py           .setting -> .drfx
   install_macos.sh       install into the right Resolve build (--detect)
   make_test_pack.py      diagnostic test pack (13 tests)
+  ci_checks.py           CI checks: SKILL.md lint, build + Lua parse, secret scan
 templates/pricing_card.py  example spec
 examples/                specs of templates built with the skill
 docs/brief.md            original brief the skill was built from
+```
+
+## Development
+
+```bash
+python3 -m pip install -r requirements-dev.txt
+python3 -m pytest -q tests
+```
+
+## CI
+
+Every PR into `develop` runs independent jobs: SKILL.md lint, build of all
+examples with a Lua parse of each `.setting` and every expression, unit
+tests, and a scan for secrets and personal paths. Locally:
+
+```bash
+python3 scripts/ci_checks.py skill
+python3 scripts/ci_checks.py settings   # needs: pip install lupa
+python3 scripts/ci_checks.py scan
 ```
 
 ## Status
