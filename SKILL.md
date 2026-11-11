@@ -186,10 +186,22 @@ Go in order:
    certainly in the wrong folder.
 3. Test pack:
    `python3 "$SKILL_DIR/scripts/make_test_pack.py" --out out/tests` →
-   install `DRT Tests.drfx`. Tests: 01 Text (red text), 02 Background (green
-   frame), 03 Rect Mask (blue 2:1 rectangle), 04 Merge (white text on a
-   transparent background), 05 Mask Height, 06–13 (unverified features;
-   expected results are printed at build time).
+   install `DRT Tests.drfx` (`--install` also copies the test image). Tests:
+   01 Text (red text), 02 Background (green frame), 03 Rect Mask (blue 2:1
+   rectangle), 04 Merge (white text on a transparent background), 05 Mask
+   Height, 06–20 (features from verified.md: Loader and path maps, mask on
+   Text+, math, comp.RenderEnd, CharacterSpacing / LineSpacing rulers…).
+   The build writes `DRT Tests checklist.md`.
+
+## Verification pass
+
+To close the "Needs verification" items in `references/verified.md`, build
+and install the test pack, give the user `DRT Tests checklist.md` and ask
+them to fill the Result column (OK / FAIL + note) after one Resolve restart.
+When it comes back: move items to "Works" / "Does not work", update the
+calibration table and constants (e.g. the CharacterSpacing model in
+`fusion_lib.char_spacing_px`, `MASK_UNIT`, `TEXT_LINE_K`), and say which
+templates are affected.
 4. Bisect the template: `--anim static` (no expressions) → no Transform →
    background only. The first broken step points to the culprit.
 5. Ask for Workspace → Console and a screenshot of the node graph on the

@@ -135,6 +135,155 @@ def t_ring():
                                  "Phosphor Thin house icon centered inside")
 
 
+# ---------- tests 14-20: open items of references/verified.md ----------
+
+GROUP = "DRT Tests"
+TARGET = "drt-target.png"            # 400x400 test image, see make_target()
+
+
+def make_target(path):
+    """400x400 PNG: grid every 50 px, border, circles, size label (needs Pillow)."""
+    from PIL import Image, ImageDraw
+    im = Image.new("RGBA", (400, 400), (30, 120, 220, 255))
+    d = ImageDraw.Draw(im)
+    for k in range(0, 401, 50):
+        d.line([(k, 0), (k, 400)], fill=(255, 255, 255, 160), width=2)
+        d.line([(0, k), (400, k)], fill=(255, 255, 255, 160), width=2)
+    d.rectangle([0, 0, 399, 399], outline=(255, 220, 0, 255), width=8)
+    d.ellipse([100, 100, 300, 300], outline=(255, 220, 0, 255), width=8)
+    d.text((140, 190), "400x400", fill=(255, 255, 255, 255))
+    im.save(path)
+    return path
+
+
+def _loader_test(path, label):
+    tools = [background("BgCanvas", "#000000", alpha=0.0), fl.loader("LdTarget", path)]
+    m = merge("MrgTarget", "BgCanvas", "LdTarget")
+    m.set("Center", (0.5, 0.5)).set("Size", 0.5)
+    ring = rect_mask("MaskFrame", 960, 540, 208, 208)          # red 208x208 under a 200x200 image = 4 px frame
+    tools += [m, ring,
+              background("BgFrame", "#ff3333", mask="MaskFrame"),
+              merge("MrgFrame", "BgCanvas", "BgFrame"),
+              merge("MrgFrameHole", "MrgFrame", "MrgTarget"),
+              text("TxtLabel", label, 960, 820, 40, "#ffffff", h_anchor=0, v_anchor=0)]
+    tools.append(merge("MrgOut", "MrgFrameHole", "TxtLabel"))
+    return tools
+
+
+def t_loader():
+    tools = _loader_test(fl.asset_path(GROUP, TARGET), "Loader: absolute path")
+    return tools, [], "MrgOut", ("blue 400x400 grid image shown at 200x200 (Merge.Size 0.5) exactly inside "
+                                 "the red 4 px frame on every frame; empty frame = Loader failed, "
+                                 "image bigger/smaller than the frame = Merge.Size is not pixel-for-pixel")
+
+
+def t_loader_pathmap():
+    tools = _loader_test(f"Fusion:Assets/{GROUP}/{TARGET}", "Loader: Fusion: path map")
+    return tools, [], "MrgOut", ("same as test 14, but the Loader path is 'Fusion:Assets/...' (path map). "
+                                 "Works = templates with images become portable between machines")
+
+
+def t_text_mask():
+    c = background("BgCanvas", "#000000", alpha=0.0)
+    m = rect_mask("MaskReveal", 760, 540, 800, 300, soft=0.02)
+    t = text("TxtTest", "МАСКА MASK", 960, 540, 160, "#ffffff", style="Bold", h_anchor=0, v_anchor=0)
+    t.link("EffectMask", "MaskReveal", "Mask")
+    return [c, m, t, merge("MrgOut", "BgCanvas", "TxtTest")], [], "MrgOut", \
+        "only the LEFT part of the white text is visible, fading out softly around the middle (soft edge)"
+
+
+def t_math():
+    tools = [background("BgCanvas", "#000000", alpha=0.0)]
+    tools.append(fl.ellipse_mask("MaskDot", 960, 540, 60, 60))
+    tools.append(background("BgDot", "#00e5ff", mask="MaskDot"))
+    xf = fl.transform("XfOrbit", "BgDot")
+    xf.set("Center", (0.5, 0.5), expr="Point(0.5 + 0.15*math.cos(time*2*math.pi/60), "
+                                      "0.5 + 0.2667*math.sin(time*2*math.pi/60))")
+    tools += [xf, merge("MrgOut", "BgCanvas", "XfOrbit")]
+    return tools, [], "MrgOut", "a cyan dot circles the frame center (radius ~290 px), one turn every 60 frames"
+
+
+def t_render_end():
+    tools = [background("BgCanvas", "#000000", alpha=0.0), rect_mask("MaskBox", 960, 540, 500, 300),
+             background("BgBox", "#ff8800", mask="MaskBox")]
+    tools.append(text("TxtLabel", "fades out in the last 30 frames", 960, 760, 40, "#ffffff", h_anchor=0, v_anchor=0))
+    tools.append(merge("MrgBox", "BgCanvas", "BgBox"))
+    tools.append(merge("MrgLabel", "MrgBox", "TxtLabel"))
+    out = merge("MrgOut", "BgCanvas", "MrgLabel")
+    out.set("Blend", 1.0, expr="min(1, max(0, (comp.RenderEnd - time)/30))")
+    tools.append(out)
+    return tools, [], "MrgOut", ("orange box fully visible, fades out over the LAST 30 frames of the clip "
+                                 "(trim the clip: the fade must move with the clip end)")
+
+
+def _advance(font, style, em, text_):
+    try:
+        from PIL import ImageFont
+    except ImportError:
+        return None
+    path = fl._find_font(font, style)
+    return ImageFont.truetype(path, int(em)).getlength(text_) if path else None
+
+
+def _ticks(prefix, xs, y, col, h=40):
+    out, stack = [], None
+    for i, x in enumerate(xs):
+        out.append(rect_mask(f"Mask{prefix}{i}", x, y, 3, h))
+        out.append(background(f"Bg{prefix}{i}", col, mask=f"Mask{prefix}{i}"))
+    return out
+
+
+def t_char_spacing():
+    em, cs, n, x0, y = 100, 1.5, 8, 360, 480
+    tools = [background("BgCanvas", "#000000", alpha=0.0)]
+    t = text("TxtTest", "I" * n, x0, y, em, "#ffffff", font="Inter", style="Regular", v_anchor=0)
+    t.set("CharacterSpacing", cs)
+    tools.append(t)
+    stack = merge("MrgText", "BgCanvas", "TxtTest")
+    tools.append(stack)
+    adv = _advance("Inter", "Regular", em, "I")
+    expect = "8 letters I with CharacterSpacing 1.5"
+    if adv:
+        k = fl.text_size_k("Inter", "Regular")
+        add_step = adv + (cs - 1) * em * k          # model A: extra (cs-1)*Size*1920 px per char
+        mul_step = adv * cs                          # model B: advance * cs
+        tools += _ticks("A", [x0 + adv / 2 + i * add_step for i in range(n)], y + 90, "#ff3333")
+        tools += _ticks("B", [x0 + adv / 2 + i * mul_step for i in range(n)], y + 150, "#33ff66")
+        prev = "MrgText"
+        for i, tl in enumerate([t for t in tools if t.kind == "Background" and t.name[2:3] in "AB"]):
+            m = merge(f"MrgTick{i}", prev, tl.name)
+            tools.append(m)
+            prev = m.name
+        stack = tools[-1]
+        expect += (": the letters line up with the RED ticks (model A, additive) or the GREEN ticks "
+                   "(model B, multiplicative). Report which one, or neither")
+    return tools, [], stack.name, expect
+
+
+def t_line_spacing():
+    em, ls, n, x, y0 = 80, 1.5, 4, 700, 260
+    tools = [background("BgCanvas", "#000000", alpha=0.0)]
+    t = text("TxtTest", "\n".join(["HHH"] * n), x, y0, em, "#ffffff", font="Inter", style="Regular", v_anchor=-1)
+    t.set("LineSpacing", ls)
+    tools += [t, merge("MrgText", "BgCanvas", "TxtTest")]
+    expect = "4 lines HHH with LineSpacing 1.5"
+    try:
+        path = fl._find_font("Inter", "Regular")
+        line = fl.font_line_height(path) * em if path else None
+    except Exception:
+        line = None
+    if line:
+        prev = "MrgText"
+        for i in range(n):
+            yy = y0 + i * line * ls
+            tools += [rect_mask(f"MaskL{i}", x - 60, yy, 60, 3), background(f"BgL{i}", "#ff3333", mask=f"MaskL{i}"),
+                      merge(f"MrgL{i}", prev, f"BgL{i}")]
+            prev = f"MrgL{i}"
+        expect += (": the red ticks on the left mark the predicted TOP of each line "
+                   "(step = font line height x 1.5). Report the measured step if they drift")
+    return tools, [], tools[-1].name, expect
+
+
 TESTS = [
     ("Test 01 Text", t_text), ("Test 02 Background", t_background), ("Test 03 Rect Mask", t_mask),
     ("Test 04 Merge", t_merge), ("Test 05 Mask Height", t_mask_height),
@@ -142,7 +291,22 @@ TESTS = [
     ("Test 08 Anim Keys", t_anim_keys), ("Test 09 Shapes", t_shapes), ("Test 10 Shadow Glow", t_shadow),
     ("Test 11 Text Scale", t_text_scale), ("Test 12 Font Group", t_font_group),
     ("Test 13 Ellipse Ring", t_ring),
+    ("Test 14 Loader", t_loader), ("Test 15 Loader Path Map", t_loader_pathmap),
+    ("Test 16 Text Mask", t_text_mask), ("Test 17 Math", t_math), ("Test 18 Render End", t_render_end),
+    ("Test 19 Char Spacing", t_char_spacing), ("Test 20 Line Spacing", t_line_spacing),
 ]
+
+CHECKLIST_HEAD = """# DRT Tests — checklist
+
+Install `DRT Tests.drfx`, restart Resolve, put each title on a timeline (5 s or
+longer) and check it with the playhead in the middle of the clip (tests 07, 08,
+17, 18: play the whole clip). Fill the "Result" column with OK / FAIL and a
+note, then paste this file back to Claude: it updates `references/verified.md`
+and the calibration constants.
+
+| Test | Expected | Result |
+|---|---|---|
+"""
 
 
 def main():
@@ -151,9 +315,16 @@ def main():
     ap.add_argument("--group", default="DRT Tests")
     ap.add_argument("--install", action="store_true")
     a = ap.parse_args()
+    global GROUP
+    GROUP = a.group
     fl.set_frame(1920, 1080)
     os.makedirs(a.out, exist_ok=True)
-    files = []
+    try:
+        target = make_target(os.path.join(a.out, TARGET))
+    except ImportError:
+        target = None
+        print("Pillow missing: test image for tests 14-15 not generated")
+    files, rows = [], []
     for title, fn in TESTS:
         tools, pubs, out, expect = fn()
         fl.layout(tools)
@@ -163,11 +334,22 @@ def main():
         with open(p, "w", encoding="utf-8") as f:
             f.write(src)
         files.append(p)
+        rows.append(f"| {title} | {expect} | |")
         print(f"{title}: {expect}")
+    checklist = os.path.join(a.out, f"{a.group} checklist.md")
+    with open(checklist, "w", encoding="utf-8") as f:
+        f.write(CHECKLIST_HEAD + "\n".join(rows) + "\n")
+    print(f"\nchecklist -> {checklist}")
     drfx = os.path.join(a.out, f"{a.group}.drfx")
     pack(drfx, files, a.group, "Titles")
     print(f"\n-> {drfx}")
     if a.install:
+        if target:
+            import shutil
+            dst = fl.asset_path(a.group, TARGET)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.copyfile(target, dst)
+            print(f"asset -> {dst}")
         subprocess.run([os.path.join(HERE, "install_macos.sh"), drfx], check=False)
 
 
