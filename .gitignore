@@ -1,0 +1,13 @@
+# local working area and original seed files (not part of the skill)
+/resolve-templates/
+/fusion_lib.py
+/pricing_card.py
+/tests_build.py
+/skill-prompt.md
+
+# build output and generated assets (photos stay local)
+out/
+examples/*/assets/
+__pycache__/
+*.pyc
+.DS_Store
