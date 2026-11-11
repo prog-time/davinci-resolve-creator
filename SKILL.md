@@ -67,10 +67,16 @@ of `$SKILL_DIR` in every command. Put working files into the current project:
    ```
 
    The script prints fps and a motion timeline and builds a contact sheet.
-   Look at the sheet (Read), split the animation into stages, measure the
-   layout on a frame where everything is in place with `analyze_image.py`,
-   and track element sizes over frames (bbox by color) to get timings and
-   curves. Convert source frames to timeline frames:
+   Look at the sheet (Read), split the animation into stages and measure the
+   layout on a frame where everything is in place with `analyze_image.py`.
+   Then get timings and easing per element with `track.py` (bbox by color,
+   motion stages, closest curve, converted to timeline frames):
+
+   ```bash
+   python3 "$SKILL_DIR/scripts/track.py" ref.mov --el "card=#201f20:12" \
+     --el "photo=#4fa8c4:40@700,150,520,560" --fps-tl 30
+   ```
+ Convert source frames to timeline frames:
    `f_tl = (f_src − f_start) × fps_tl / fps_src` (ask for the timeline fps).
    Needs PyAV and Pillow. No ffmpeg needed; swift from Command Line Tools
    can be broken.
@@ -82,9 +88,18 @@ of `$SKILL_DIR` in every command. Put working files into the current project:
 Ask the questions from `references/questions.md`, **one per message**, each
 with a recommendation. Skip questions answered by the image or already
 answered. "OK to all" / «ок на всё» means: take the recommendations.
-Check fonts yourself:
-`system_profiler SPFontsDataType | grep -i "<font>"` (macOS) /
-`fc-list | grep -i "<font>"`.
+Check fonts yourself with `scripts/fonts.py`:
+
+```bash
+python3 "$SKILL_DIR/scripts/fonts.py" check "Oswald:Bold" --script cyrillic   # coverage by cmap
+python3 "$SKILL_DIR/scripts/fonts.py" compare --crop name.png --text "DARLA" Oswald:Bold Impact.ttf
+python3 "$SKILL_DIR/scripts/fonts.py" find Oswald                             # free static TTFs
+python3 "$SKILL_DIR/scripts/fonts.py" install Oswald --styles Bold,Light       # plan; add --yes after the user agrees
+python3 "$SKILL_DIR/scripts/fonts.py" glyph phosphor potted-plant --weight thin
+```
+
+Installing a font changes the user's system: show the plan and install with
+`--yes` only after the user agrees.
 
 ### Step 3 — Spec
 
@@ -119,11 +134,18 @@ Show it and **wait for confirmation**:
    ```
 
    `fl.macro()` checks node names, references and publishes. `validate()`
-   checks brackets and strings and runs `luac -p` when installed. Fix errors
-   in the spec, never in the `.setting`.
-4. Open the preview `out/<Name>.png` (Read) and compare it with the
-   reference. The preview is approximate: expressions and animation are not
-   evaluated.
+   checks brackets and strings and runs `luac -p` when installed. `FIT` in
+   the spec makes the build warn about texts wider than their container.
+   Fix errors and overflow in the spec, never in the `.setting`.
+4. Check the result before installing:
+   - static preview `out/<Name>.png` (Read) against the reference layout;
+   - animated preview: build with `--preview-anim [FRAMES]` (or run
+     `scripts/preview_anim.py spec.py --frames N`) and look at
+     `out/<Name>-frames.png` (Read): every expression is evaluated with Lua,
+     so timings, directions, pivots and fades are visible without Resolve.
+     Use it to catch motion bugs (wrong pivot, double offset, wrong order).
+   Both previews are approximate (no Fusion filtering, CharacterSpacing
+   ignored), the final check is still a screenshot from Resolve.
 
 ### Step 5 — Install into its own group
 
@@ -171,8 +193,18 @@ verified; say so.
 
 ### Step 6 — Check
 
-Ask for a screenshot from Resolve next to the reference. Fix differences in
-the spec and rebuild. Record calibration values and confirmed points in
+Ask for a screenshot from Resolve (the viewer at 100% or the full frame) and
+compare it with the reference element by element:
+
+```bash
+python3 "$SKILL_DIR/scripts/compare.py" ref.png resolve.png --scale <render px -> ref px> \
+  --el "card=#201f20:14" --el "title=#eaeaea:20@650,700,620,110" --out <scratch>/cmp
+```
+
+The report gives the common offset (move the whole template) and, per
+element, the remaining offset, width/height ratio and color; `diff.png` and
+`onion.png` show where. Fix differences in the spec by these numbers and
+rebuild. Record calibration values and confirmed points in
 `references/verified.md`.
 
 ## "Black screen" diagnostics
