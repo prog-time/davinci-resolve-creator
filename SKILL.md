@@ -121,9 +121,15 @@ Show it and **wait for confirmation**:
    `fl.macro()` checks node names, references and publishes. `validate()`
    checks brackets and strings and runs `luac -p` when installed. Fix errors
    in the spec, never in the `.setting`.
-4. Open the preview `out/<Name>.png` (Read) and compare it with the
-   reference. The preview is approximate: expressions and animation are not
-   evaluated.
+4. Check the result before installing:
+   - static preview `out/<Name>.png` (Read) against the reference layout;
+   - animated preview: build with `--preview-anim [FRAMES]` (or run
+     `scripts/preview_anim.py spec.py --frames N`) and look at
+     `out/<Name>-frames.png` (Read): every expression is evaluated with Lua,
+     so timings, directions, pivots and fades are visible without Resolve.
+     Use it to catch motion bugs (wrong pivot, double offset, wrong order).
+   Both previews are approximate (no Fusion filtering, CharacterSpacing
+   ignored), the final check is still a screenshot from Resolve.
 
 ### Step 5 — Install into its own group
 
