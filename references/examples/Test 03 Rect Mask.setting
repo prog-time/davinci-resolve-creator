@@ -1,0 +1,48 @@
+{
+	Tools = ordered() {
+		Test03RectMask = MacroOperator {
+			CtrlWZoom = false,
+			NameSet = true,
+			Inputs = ordered() {
+			},
+			Outputs = {
+				MainOutput1 = InstanceOutput { SourceOp = "BgTest", Source = "Output", },
+			},
+			ViewInfo = GroupInfo { Pos = { 0, 0 } },
+			Tools = ordered() {
+				MaskTest = RectangleMask {
+					CtrlWZoom = false,
+					Inputs = {
+						Filter = Input { Value = FuID { "Fast Gaussian" }, },
+						MaskWidth = Input { Value = 1920, },
+						MaskHeight = Input { Value = 1080, },
+						PixelAspect = Input { Value = { 1, 1 }, },
+						UseFrameFormatSettings = Input { Value = 1, },
+						ClippingMode = Input { Value = FuID { "None" }, },
+						Center = Input { Value = { 0.5, 0.5 }, },
+						Width = Input { Value = 0.3125, },
+						Height = Input { Value = 0.27778, },
+						CornerRadius = Input { Value = 0.2, },
+					},
+					ViewInfo = OperatorInfo { Pos = { 0, 0 } },
+				},
+				BgTest = Background {
+					CtrlWZoom = false,
+					Inputs = {
+						Width = Input { Value = 1920, },
+						Height = Input { Value = 1080, },
+						UseFrameFormatSettings = Input { Value = 1, },
+						["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+						TopLeftRed = Input { Value = 0.2, },
+						TopLeftGreen = Input { Value = 0.4, },
+						TopLeftBlue = Input { Value = 1.0, },
+						TopLeftAlpha = Input { Value = 1.0, },
+						EffectMask = Input { SourceOp = "MaskTest", Source = "Mask", },
+					},
+					ViewInfo = OperatorInfo { Pos = { 110, 0 } },
+				},
+			},
+		},
+	},
+	ActiveTool = "Test03RectMask"
+}
