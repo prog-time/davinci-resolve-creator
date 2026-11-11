@@ -366,6 +366,58 @@ def text_size_k(font, style="Regular"):
     return _K_CACHE[key]
 
 
+def char_spacing_px(em_px, cs, font="Inter", style="Regular"):
+    """Extra advance per character for Text+ CharacterSpacing `cs`.
+    Model (UNVERIFIED, verified.md item 17): (cs - 1) * Size * FRAME_W px."""
+    return (cs - 1.0) * em_px * text_size_k(font, style)
+
+
+def measure_text(txt, font="Inter", style="Regular", em_px=40, cs=1.0):
+    """Width in frame px of the widest line of `txt` (Pillow + font metrics).
+    Returns None when Pillow or the font file is missing."""
+    try:
+        from PIL import ImageFont
+    except ImportError:
+        return None
+    path = _find_font(font, style)
+    if not path:
+        return None
+    f = ImageFont.truetype(path, max(1, int(round(em_px))))
+    scale = em_px / max(1, int(round(em_px)))
+    widths = []
+    for line in str(txt).split("\n"):
+        w = f.getlength(line) * scale
+        if len(line) > 1:
+            w += char_spacing_px(em_px, cs, font, style) * (len(line) - 1)
+        widths.append(w)
+    return max(widths) if widths else 0.0
+
+
+def text_width(tool):
+    """Width in frame px of a Text+ node built by text() (reads its inputs)."""
+    def v(k, d=None):
+        return tool.inputs[k].value if k in tool.inputs and tool.inputs[k].value is not None else d
+    font, style = v("Font", "Inter"), v("Style", "Regular")
+    em = v("Size", 0.05) * FRAME_W / text_size_k(font, style)
+    return measure_text(v("StyledText", ""), font, style, em, v("CharacterSpacing", 1.0))
+
+
+def check_fit(tools, fits):
+    """fits: [(node name, max width px), ...] -> list of warning strings."""
+    by = {t.name: t for t in tools}
+    out = []
+    for name, limit in fits:
+        if name not in by:
+            out.append(f"FIT: unknown node {name!r}")
+            continue
+        w = text_width(by[name])
+        if w is None:
+            out.append(f"FIT: {name}: cannot measure (Pillow or font file missing)")
+        elif w > limit:
+            out.append(f"FIT: {name} is {w:.0f} px wide, limit {limit:.0f} px (+{w - limit:.0f})")
+    return out
+
+
 def merge(name, bg, fg, blend=1.0, pos=(0, 0)):
     t = Tool(name, "Merge", pos)
     t.link("Background", bg).link("Foreground", fg)

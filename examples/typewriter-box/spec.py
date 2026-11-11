@@ -20,13 +20,17 @@ ANIM = "expr"
 fl.set_frame(*FRAME)
 FW, FH = FRAME
 
-BOX_W, BOX_H = 684, 129
+PAD = 43                       # text left padding
+# box = padding + measured "text + cursor" (Inter SemiBold 72) + 22 px right gap; 684 without Pillow
+_TW = fl.measure_text("typewriter effect\u200a|", "Inter", "SemiBold", 72)
+BOX_W, BOX_H = (round(PAD + _TW + 22) if _TW else 684), 129
 L = (FW - BOX_W) / 2           # box left edge (fixed; width grows to the right)
 CY = FH / 2
 B = 4                          # border thickness
 HANDLE = 35
-PAD = 43                       # text left padding
 GRID_STEP = 46
+
+FIT = [("TxtTyped", BOX_W - PAD - 10)]     # warn if the default text overflows the box
 
 VARIANTS = {
     "Typewriter Box": dict(

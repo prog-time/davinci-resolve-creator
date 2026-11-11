@@ -46,6 +46,12 @@ Optional elements (e.g. a badge) use `Merge.Blend` 0/1, published as
   need a length limit (about 38 characters at 17 px on 345 px width).
   **Tell the user the limit.**
 - Pass sizes in frame px (em); `fl.text()` applies the calibrated factor.
+- Text+ cannot measure its width, but the build can: `fl.measure_text(txt,
+  font, style, em_px, cs)` returns the widest line in frame px (Pillow + the
+  font file). Use it for default values of width sliders (box width, writing
+  width, underline length) instead of hand-picked numbers, and list
+  `FIT = [(node, max_px), ...]` in the spec: `generate.py` warns when a
+  default text overflows its container.
 - Anchors: `h_anchor` -1/0/1 (left/center/right), `v_anchor` -1/0/1
   (top/center/bottom). For lists: `v_anchor=0`, position at the line center.
 - Typing text: a source node `TxtXSrc` holds the published text (not

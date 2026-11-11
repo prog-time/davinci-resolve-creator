@@ -6,6 +6,7 @@ Spec contract (see templates/pricing_card.py):
     PACK = "My Template"               # .drfx file name (default: first variant)
     PREVIEW_BG = "#ebe7e1"             # optional: preview background (dark text on light video)
     ASSETS = {"a.png": "src/a.png"}    # optional: images for fl.loader(), copied on --install
+    FIT = [("TxtTitle", 700)]          # optional: warn when a text node is wider (px)
     CATEGORY = "Titles"                # Titles | Generators | Effects
     FRAME = (1920, 1080)
     VARIANTS = {"Template Name": {...}, ...}
@@ -78,6 +79,8 @@ def main():
         with open(path, "w", encoding="utf-8") as f:
             f.write(src)
         files.append(path)
+        for warning in fl.check_fit(tools, getattr(mod, "FIT", [])):
+            print(f"WARNING {title}: {warning}")
         prev = None if a.no_preview else fl.render_preview(tools, os.path.splitext(path)[0] + ".png", output=out_name,
                                                          bg=getattr(mod, "PREVIEW_BG", "#181818"))
         print(f"{path}: {len(tools)} nodes, {len(pubs)} published, anim={anim}"

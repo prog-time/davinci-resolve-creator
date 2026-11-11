@@ -33,6 +33,8 @@ PH = (960, 430, 386, 407)
 SHIFT = 111.5                     # photo group offset (px) before the card extends
 INTRO_END = 126                   # last animated frame of the intro (timeline frames at Speed 1)
 
+FIT = [("TxtName", CARD_W - 40), ("TxtRole", CARD_W - 40), ("TxtCompany", CARD_W - 40)]
+
 VARIANTS = {
     "Profile Card": dict(
         card="#201f20", white="#eaeaea", name_c="#eaeaea", role_c="#53acc0", company_c="#b6b5b6",
