@@ -88,9 +88,18 @@ of `$SKILL_DIR` in every command. Put working files into the current project:
 Ask the questions from `references/questions.md`, **one per message**, each
 with a recommendation. Skip questions answered by the image or already
 answered. "OK to all" / «ок на всё» means: take the recommendations.
-Check fonts yourself:
-`system_profiler SPFontsDataType | grep -i "<font>"` (macOS) /
-`fc-list | grep -i "<font>"`.
+Check fonts yourself with `scripts/fonts.py`:
+
+```bash
+python3 "$SKILL_DIR/scripts/fonts.py" check "Oswald:Bold" --script cyrillic   # coverage by cmap
+python3 "$SKILL_DIR/scripts/fonts.py" compare --crop name.png --text "DARLA" Oswald:Bold Impact.ttf
+python3 "$SKILL_DIR/scripts/fonts.py" find Oswald                             # free static TTFs
+python3 "$SKILL_DIR/scripts/fonts.py" install Oswald --styles Bold,Light       # plan; add --yes after the user agrees
+python3 "$SKILL_DIR/scripts/fonts.py" glyph phosphor potted-plant --weight thin
+```
+
+Installing a font changes the user's system: show the plan and install with
+`--yes` only after the user agrees.
 
 ### Step 3 — Spec
 
@@ -125,8 +134,9 @@ Show it and **wait for confirmation**:
    ```
 
    `fl.macro()` checks node names, references and publishes. `validate()`
-   checks brackets and strings and runs `luac -p` when installed. Fix errors
-   in the spec, never in the `.setting`.
+   checks brackets and strings and runs `luac -p` when installed. `FIT` in
+   the spec makes the build warn about texts wider than their container.
+   Fix errors and overflow in the spec, never in the `.setting`.
 4. Open the preview `out/<Name>.png` (Read) and compare it with the
    reference. The preview is approximate: expressions and animation are not
    evaluated.
