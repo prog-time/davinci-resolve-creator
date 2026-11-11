@@ -46,6 +46,12 @@ Optional elements (e.g. a badge) use `Merge.Blend` 0/1, published as
   need a length limit (about 38 characters at 17 px on 345 px width).
   **Tell the user the limit.**
 - Pass sizes in frame px (em); `fl.text()` applies the calibrated factor.
+- Text+ cannot measure its width, but the build can: `fl.measure_text(txt,
+  font, style, em_px, cs)` returns the widest line in frame px (Pillow + the
+  font file). Use it for default values of width sliders (box width, writing
+  width, underline length) instead of hand-picked numbers, and list
+  `FIT = [(node, max_px), ...]` in the spec: `generate.py` warns when a
+  default text overflows its container.
 - Anchors: `h_anchor` -1/0/1 (left/center/right), `v_anchor` -1/0/1
   (top/center/bottom). For lists: `v_anchor=0`, position at the line center.
 - Typing text: a source node `TxtXSrc` holds the published text (not
@@ -63,7 +69,7 @@ stroke) is too heavy for thin icons. Write the code point in the spec as
 `"\uXXXX"`, not the character itself.
 
 The icon is a separate Text+ with the icon font, the text being the glyph
-(e.g. `""` for Font Awesome). The user swaps it by copying the glyph on
+(e.g. `"\uf00c"` for Font Awesome). The user swaps it by copying the glyph on
 the icon site (fontawesome.com → Copy Glyph) into the "Item N: icon" field.
 Warn that only free icons of the installed style work.
 
@@ -75,23 +81,28 @@ A picture can be baked into the template: set
 `generate.py --install` copies the file into `Fusion/Assets/<group>/` of
 the Resolve build it finds (the App Store build reads only its container).
 The path is written into the `.setting`, so changing the photo means a
-rebuild. Crop the photo beforehand (e.g. 512×512 around the face); round it
+rebuild. By default it is absolute (tied to this Mac and Resolve build);
+`generate.py --asset-paths pathmap` (or `DRT_ASSET_PATHS=pathmap`, or
+`fl.ASSET_PATHS = "pathmap"` at the top of the spec) writes
+`Fusion:Assets/<group>/<file>` instead, which is portable — switch to it once
+Test 15 of the test pack passes. `--install` records the copied images in a
+manifest, so `install_macos.sh --uninstall` removes them with the template. Crop the photo beforehand (e.g. 512×512 around the face); round it
 with an `EffectMask` on the Merge. Not verified (verified.md, items 13–14).
 
 **Decor that cannot be built from nodes** (torn paper, textures, tape,
 clips, sticky notes, pins, marker strokes): draw it as PNGs with a
 `make_assets.py` script next to the spec (Pillow; rotation and shadow are
 baked in; size in frame pixels). Put the shared layout into `geometry.py`,
-read by both `make_assets.py` and `spec.py`. Place each part as
-`Loader` → `Merge(Size=1, Center=position)` → `Transform` with the
-animation (`pivot` = position). Keep texts as live Text+. Example:
+read by both `make_assets.py` and `spec.py`. Place each part with
+`place_image()` (Loader → Merge(Size=1, Center=position)) and animate it
+with `Timeline.slide()` (`pivot` = position). Keep texts as live Text+. Example:
 `examples/scrapbook-note/` (not verified in Resolve).
 
 **Handwriting.** Text+ cannot draw a pen stroke. Imitation: a
-`RectangleMask` with a soft edge (`soft`) as the Text+ `EffectMask`. The
-mask width grows left to right up to `C.TitleW` (Text+ does not know its
+`RectangleMask` with a soft edge as the Text+ `EffectMask`
+(`Timeline.wipe_mask()`). The mask width grows left to right up to `C.TitleW` (Text+ does not know its
 width, so add a "writing width" slider); a pen icon rides the edge (FA
-``, bottom-left anchor = the tip). Draw an underline as a marker
+`\uf304`, bottom-left anchor = the tip). Draw an underline as a marker
 image revealed by the same kind of mask. Not verified.
 
 Other options:
@@ -123,6 +134,15 @@ Other options:
 
 ## Animation
 
+Build animation from `scripts/fusion_anim.py` instead of hand-written
+expressions: `Timeline(ctrl, speed)` gives `prog()`, `eased()`, `on()`,
+`slide()` (fly in from a side with rotation/scale), `grow()` (scale from 0
+around a pivot), `slide_y()`, `typing()`, `wipe_mask()` (handwriting reveal),
+`hold_fade()` / `clip_end_fade()`, `controls()` and `output()` (master
+Transform + MrgOut + exit fade), `publish()`; plus `place_image()` for
+Loader-based images. `scripts/setting_diff.py A B` proves a refactor did not
+change a template.
+
 - `ANIM = "expr"`: entrance and exit on expressions, controls in the
   Inspector. Expressions are verified (time, iif, min/max, Point, multi-line
   Lua); `comp.RenderEnd` is not.
@@ -151,6 +171,11 @@ Other options:
   and point to the size slider.
 - If a text is typed through a source node (`TxtXSrc` → `TxtX`), publish the
   font on the display node `TxtX`, not on the source.
+
+Use `scripts/fonts.py` for all of this: `check` (script coverage by the cmap),
+`compare` (candidates next to a crop of the reference), `find` / `install`
+(free static TTFs, version at least 14 days old; install only after the user
+agrees), `glyph` (icon code point by name for Phosphor and Tabler).
 
 Use only fonts installed on the user's machine. Check before building:
 `system_profiler SPFontsDataType | grep -i "<font>"` (macOS) or

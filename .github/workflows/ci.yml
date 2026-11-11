@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  skill-lint:
+    name: SKILL.md lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python3 scripts/ci_checks.py skill
+
+  build-examples:
+    name: Build examples + Lua parse
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python3 -m pip install lupa
+      - run: python3 scripts/ci_checks.py settings
+
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run pytest (skipped while tests/ does not exist)
+        run: |
+          if [ -d tests ]; then
+            python3 -m pip install -r requirements-dev.txt
+            python3 -m pytest -q tests
+          else
+            echo "no tests/ yet"
+          fi
+
+  secret-scan:
+    name: Secrets and personal paths
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python3 scripts/ci_checks.py scan

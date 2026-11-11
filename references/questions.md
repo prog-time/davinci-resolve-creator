@@ -23,6 +23,21 @@ Ask in the user's language. The wording below is the meaning, not a script.
 - "Don't know": take the recommendation and list it under assumptions.
 - Questions marked ↳ are asked only when their condition holds.
 
+## Quick mode
+
+Use it instead of one-by-one questions when the template is simple (one
+style, up to ~3 texts, no photo or video reference, no ambiguity in the
+image) or when the user asks for speed up front ("use defaults", «быстро»,
+«давай дефолты»). Send ONE message in the user's language:
+
+1. what you saw (type, elements, colors, fonts);
+2. every remaining question from the list below as a numbered line with its
+   recommendation already filled in;
+3. "Reply OK, or correct the numbers you want to change".
+
+Then go straight to the spec. Fall back to the full Grill Me when the answer
+changes the structure (e.g. "make it a block of 3", "add a photo").
+
 ## A. Purpose
 
 1. **Template type.** Title (title, badge, lower third, card), Generator

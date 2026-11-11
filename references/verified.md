@@ -58,7 +58,7 @@ Diagnostic pack: `scripts/make_test_pack.py`.
 | 1 | ~~`RectangleMask` height~~ — verified above. Test 05: stripe **B** (cyan) must be exactly 4:1 | Test 05 | control |
 | 2 | Text size factor for fonts other than Inter/Phosphor | Test 11 | "H" at Size=100px ≈ ruler height × the font's cap height |
 | 3 | `HorizontalJustificationNew = 0` left-aligns multi-line text | Test 06 | 3 lines aligned left |
-| 4 | `comp.RenderEnd` (exit at the clip end); other expressions are verified | Test 07 | slide and fade at the start and at the end of the clip |
+| 4 | `comp.RenderEnd` (exit at the clip end); other expressions are verified | Test 07, Test 18 | slide and fade at the start and at the end of the clip |
 | 5 | Keyframes: `BezierSpline`, `XYPath` | Test 08 | slide and fade at the start only |
 | 6 | Shapes: `sRectangle`, `sEllipse`, `sMerge`, `sRender` (input names, units) | Test 09 | 400×200 rectangle and a circle |
 | 7 | `RectangleMask.SoftEdge` (shadow), `SoftGlow` | Test 10 | soft shadow, glow |
@@ -67,11 +67,12 @@ Diagnostic pack: `scripts/make_test_pack.py`.
 | 10 | Preview `.png` next to `.setting` shown in the Effects Library | any template | thumbnail instead of the default icon |
 | 11 | Effect (`main_input`) and Generator templates | — | — |
 | 12 | Windows / Linux install paths; unzip install for the website build | — | — |
-| 13 | `Loader` in a title (`fl.loader`, still: Loop=1, GlobalStart −1000…100000), file in `Fusion/Assets/<group>/` of the App Store container | Subscribe Bar | the photo is visible in the circle on every frame |
-| 14 | `Merge` with `EffectMask` (round crop) and `Merge.Size` = px / image width (no rescaling of the foreground) | Subscribe Bar | photo exactly Ø167 |
-| 15 | `math.cos` / `math.sin` / `math.pi` and `abs` in expressions | Subscribe Bar | photo spiral, button press |
-| 16 | `EffectMask` on Text+ and `RectangleMask.SoftEdge` (title writing); 9 Loaders in one title | Scrapbook Note | the title is revealed left to right with a soft edge |
-| 17 | Text+ `CharacterSpacing` and `LineSpacing` units (assumed: spacing adds (cs−1)×Size×1920 px per character) | Profile Card, Typewriter grid | letter spacing matches the reference |
+| 13 | `Loader` in a title (`fl.loader`, still: Loop=1, GlobalStart −1000…100000), file in `Fusion/Assets/<group>/` of the App Store container | Test 14, Subscribe Bar | the photo is visible in the circle on every frame |
+| 14 | `Merge` with `EffectMask` (round crop) and `Merge.Size` = px / image width (no rescaling of the foreground) | Test 14, Subscribe Bar | photo exactly Ø167 |
+| 15 | `math.cos` / `math.sin` / `math.pi` and `abs` in expressions | Test 17, Subscribe Bar | photo spiral, button press |
+| 16 | `EffectMask` on Text+ and `RectangleMask.SoftEdge` (title writing); 9 Loaders in one title | Test 16, Scrapbook Note | the title is revealed left to right with a soft edge |
+| 17 | Text+ `CharacterSpacing` and `LineSpacing` units (assumed: spacing adds (cs−1)×Size×1920 px per character) | Test 19, Test 20, Profile Card | letter spacing matches the reference |
+| 18 | Path map in a Loader path (`Fusion:Assets/<group>/<file>`) instead of an absolute path | Test 15 | the image shows like in test 14 → templates with images become portable |
 
 If expressions (item 4) fail, switch templates to `ANIM = "keys"` (entrance
 only). If keyframes fail too, use `"static"`.

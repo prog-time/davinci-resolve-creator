@@ -6,6 +6,7 @@ Spec contract (see templates/pricing_card.py):
     PACK = "My Template"               # .drfx file name (default: first variant)
     PREVIEW_BG = "#ebe7e1"             # optional: preview background (dark text on light video)
     ASSETS = {"a.png": "src/a.png"}    # optional: images for fl.loader(), copied on --install
+    FIT = [("TxtTitle", 700)]          # optional: warn when a text node is wider (px)
     CATEGORY = "Titles"                # Titles | Generators | Effects
     FRAME = (1920, 1080)
     VARIANTS = {"Template Name": {...}, ...}
@@ -13,7 +14,7 @@ Spec contract (see templates/pricing_card.py):
 
 Usage:
     generate.py SPEC.py [--variant all|NAME] [--out DIR] [--anim expr|keys|static]
-                [--pack] [--install] [--no-preview]
+                [--pack] [--install] [--no-preview] [--preview-anim [FRAMES]]
 """
 import argparse
 import importlib.util
@@ -53,9 +54,15 @@ def main():
     ap.add_argument("--pack", action="store_true")
     ap.add_argument("--install", action="store_true", help="pack and run install_macos.sh")
     ap.add_argument("--no-preview", action="store_true")
+    ap.add_argument("--asset-paths", choices=("absolute", "pathmap"),
+                    help="how Loader paths are written (default: spec ASSET_PATHS, env DRT_ASSET_PATHS, absolute)")
+    ap.add_argument("--preview-anim", type=int, metavar="FRAMES", nargs="?", const=150,
+                    help="also render an animated preview (GIF + frame sheet) of FRAMES frames")
     a = ap.parse_args()
 
     # frame must be set before the spec computes pixel positions
+    if a.asset_paths:
+        fl.ASSET_PATHS = a.asset_paths
     mod = load_spec(a.spec)
     fl.set_frame(*getattr(mod, "FRAME", (1920, 1080)))
     category = getattr(mod, "CATEGORY", "Titles")
@@ -78,8 +85,19 @@ def main():
         with open(path, "w", encoding="utf-8") as f:
             f.write(src)
         files.append(path)
+        for warning in fl.check_fit(tools, getattr(mod, "FIT", [])):
+            print(f"WARNING {title}: {warning}")
         prev = None if a.no_preview else fl.render_preview(tools, os.path.splitext(path)[0] + ".png", output=out_name,
                                                          bg=getattr(mod, "PREVIEW_BG", "#181818"))
+        if a.preview_anim:
+            try:
+                import preview_anim
+                shots = preview_anim.render_animation(tools, out_name, a.preview_anim, step=2,
+                                                      bg=getattr(mod, "PREVIEW_BG", "#202020"))
+                gif, sheet = preview_anim.save_outputs(shots, a.out, title)
+                print(f"animated preview: {gif}, {sheet}")
+            except SystemExit as e:
+                print(f"animated preview skipped: {e}")
         print(f"{path}: {len(tools)} nodes, {len(pubs)} published, anim={anim}"
               + (", preview" if prev else ", no preview (pip install pillow)" if not a.no_preview else ""))
     lc = fl.luac_check("{}")
@@ -94,11 +112,19 @@ def main():
         if a.install:
             # ASSETS = {"name.png": "/source/path.png"} -> copied to fl.asset_path(GROUP, name)
             import shutil
+            pack_name = getattr(mod, "PACK", names[0])
+            copied = []
             for name, src_path in getattr(mod, "ASSETS", {}).items():
-                dst = fl.asset_path(mod.GROUP, name)
+                dst = os.path.join(fl.asset_dir(mod.GROUP), name)
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
                 shutil.copyfile(src_path, dst)
+                copied.append(dst)
                 print(f"asset -> {dst}")
+            if copied:                         # read by install_macos.sh --uninstall
+                man = fl.manifest_path(pack_name)
+                os.makedirs(os.path.dirname(man), exist_ok=True)
+                with open(man, "w", encoding="utf-8") as f:
+                    f.write("".join(f"asset {p}\n" for p in copied))
             cmd = [os.path.join(HERE, "install_macos.sh"), drfx]
             r = subprocess.run(cmd)
             if r.returncode != 0:
