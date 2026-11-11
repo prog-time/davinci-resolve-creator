@@ -58,6 +58,7 @@ scripts/
   analyze_image.py       measurements from a reference image
   fonts.py               find / check (cmap) / compare / install fonts, icon glyph codes
   video_frames.py        frames + motion timeline from a reference video
+  track.py               per-element bbox tracking, motion stages, easing fit
   pack_drfx.py           .setting -> .drfx
   install_macos.sh       install into the right Resolve build (--detect)
   make_test_pack.py      diagnostic test pack (13 tests)
