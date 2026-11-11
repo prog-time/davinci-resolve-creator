@@ -128,8 +128,9 @@ Show it and **wait for confirmation**:
    ```
 
    `fl.macro()` checks node names, references and publishes. `validate()`
-   checks brackets and strings and runs `luac -p` when installed. Fix errors
-   in the spec, never in the `.setting`.
+   checks brackets and strings and runs `luac -p` when installed. `FIT` in
+   the spec makes the build warn about texts wider than their container.
+   Fix errors and overflow in the spec, never in the `.setting`.
 4. Open the preview `out/<Name>.png` (Read) and compare it with the
    reference. The preview is approximate: expressions and animation are not
    evaluated.
