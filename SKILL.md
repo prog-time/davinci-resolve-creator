@@ -82,9 +82,18 @@ of `$SKILL_DIR` in every command. Put working files into the current project:
 Ask the questions from `references/questions.md`, **one per message**, each
 with a recommendation. Skip questions answered by the image or already
 answered. "OK to all" / «ок на всё» means: take the recommendations.
-Check fonts yourself:
-`system_profiler SPFontsDataType | grep -i "<font>"` (macOS) /
-`fc-list | grep -i "<font>"`.
+Check fonts yourself with `scripts/fonts.py`:
+
+```bash
+python3 "$SKILL_DIR/scripts/fonts.py" check "Oswald:Bold" --script cyrillic   # coverage by cmap
+python3 "$SKILL_DIR/scripts/fonts.py" compare --crop name.png --text "DARLA" Oswald:Bold Impact.ttf
+python3 "$SKILL_DIR/scripts/fonts.py" find Oswald                             # free static TTFs
+python3 "$SKILL_DIR/scripts/fonts.py" install Oswald --styles Bold,Light       # plan; add --yes after the user agrees
+python3 "$SKILL_DIR/scripts/fonts.py" glyph phosphor potted-plant --weight thin
+```
+
+Installing a font changes the user's system: show the plan and install with
+`--yes` only after the user agrees.
 
 ### Step 3 — Spec
 

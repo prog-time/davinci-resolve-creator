@@ -152,6 +152,11 @@ Other options:
 - If a text is typed through a source node (`TxtXSrc` → `TxtX`), publish the
   font on the display node `TxtX`, not on the source.
 
+Use `scripts/fonts.py` for all of this: `check` (script coverage by the cmap),
+`compare` (candidates next to a crop of the reference), `find` / `install`
+(free static TTFs, version at least 14 days old; install only after the user
+agrees), `glyph` (icon code point by name for Phosphor and Tabler).
+
 Use only fonts installed on the user's machine. Check before building:
 `system_profiler SPFontsDataType | grep -i "<font>"` (macOS) or
 `fc-list | grep -i "<font>"`. Missing font: offer a replacement or an install
