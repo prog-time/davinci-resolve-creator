@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Break a reference VIDEO into frames for analysis. Needs PyAV + Pillow
-(`python3 -m pip install --user av pillow`; PyAV ships its own ffmpeg libs).
+(`python3 -m pip install --user av==19.0.2 pillow==13.0.0`; PyAV ships its own ffmpeg libs).
 
 Prints fps / size / duration and a motion timeline (mean frame difference),
 saves every Nth frame and a labelled contact sheet. Look at the sheet first,
@@ -18,7 +18,7 @@ try:
     import av
     from PIL import Image, ImageChops, ImageDraw, ImageStat
 except ImportError:
-    sys.exit("needs PyAV and Pillow: python3 -m pip install --user av pillow")
+    sys.exit("needs PyAV and Pillow: python3 -m pip install --user av==19.0.2 pillow==13.0.0")
 
 
 def main():

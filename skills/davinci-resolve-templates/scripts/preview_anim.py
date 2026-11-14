@@ -30,7 +30,7 @@ try:
     import lupa
     from PIL import Image, ImageDraw, ImageFilter, ImageFont
 except ImportError:
-    sys.exit("needs Pillow and lupa: python3 -m pip install --user pillow lupa")
+    sys.exit("needs Pillow and lupa: python3 -m pip install --user pillow==13.0.0 lupa==2.8")
 
 LUA_PRELUDE = """
 local function mk(getter)

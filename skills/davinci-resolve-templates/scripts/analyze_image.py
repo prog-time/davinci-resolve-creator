@@ -23,7 +23,7 @@ import sys
 try:
     from PIL import Image
 except ImportError:
-    sys.exit("Pillow is required: python3 -m pip install --user pillow")
+    sys.exit("Pillow is required: python3 -m pip install --user pillow==13.0.0")
 
 
 def hexc(c):

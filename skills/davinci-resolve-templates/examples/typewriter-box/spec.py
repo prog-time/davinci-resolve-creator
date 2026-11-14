@@ -8,7 +8,7 @@ import math
 import os
 import sys
 
-sys.path.insert(0, os.path.expanduser("~/.claude/skills/davinci-resolve-templates/scripts"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "scripts"))
 import fusion_lib as fl  # noqa: E402
 from fusion_anim import checkbox, slider  # noqa: E402
 from fusion_lib import Publish, background, merge, publish_color, rect_mask, text, transform  # noqa: E402

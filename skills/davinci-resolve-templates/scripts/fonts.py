@@ -117,7 +117,7 @@ def cmap_of(path):
     try:
         from fontTools.ttLib import TTFont
     except ImportError:
-        raise SystemExit("needs fontTools: python3 -m pip install --user fonttools")
+        raise SystemExit("needs fontTools: python3 -m pip install --user fonttools==4.68.0")
     font = TTFont(path, fontNumber=0)
     return set(font.getBestCmap() or {})
 
@@ -137,7 +137,7 @@ def cmd_compare(a):
     try:
         from PIL import Image, ImageDraw, ImageFont
     except ImportError:
-        raise SystemExit("needs Pillow: python3 -m pip install --user pillow")
+        raise SystemExit("needs Pillow: python3 -m pip install --user pillow==13.0.0")
     ref = Image.open(a.crop).convert("RGB")
     h = ref.height
     rows = [("reference", ref)]

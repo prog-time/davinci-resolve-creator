@@ -15,7 +15,7 @@ import sys
 try:
     import lupa
 except ImportError:
-    sys.exit("needs lupa: python3 -m pip install lupa")
+    sys.exit("needs lupa: python3 -m pip install lupa==2.8")
 
 LUA = """
 local function ctor(name)

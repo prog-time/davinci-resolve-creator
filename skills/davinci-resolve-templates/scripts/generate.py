@@ -99,7 +99,7 @@ def main():
             except SystemExit as e:
                 print(f"animated preview skipped: {e}")
         print(f"{path}: {len(tools)} nodes, {len(pubs)} published, anim={anim}"
-              + (", preview" if prev else ", no preview (pip install pillow)" if not a.no_preview else ""))
+              + (", preview" if prev else ", no preview (pip install pillow==13.0.0)" if not a.no_preview else ""))
     lc = fl.luac_check("{}")
     print("luac: " + ("ok" if lc else "not installed — only the built-in structural check ran"))
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Track elements of a reference VIDEO and extract animation stages.
-Needs PyAV + Pillow (`python3 -m pip install --user av pillow`).
+Needs PyAV + Pillow (`python3 -m pip install --user av==19.0.2 pillow==13.0.0`).
 
 For every element: bounding box per frame (pixels within a color tolerance,
 optionally inside a region), motion stages (where width, height or center
@@ -27,7 +27,7 @@ try:
     import av
     from PIL import Image, ImageChops
 except ImportError:
-    sys.exit("needs PyAV and Pillow: python3 -m pip install --user av pillow")
+    sys.exit("needs PyAV and Pillow: python3 -m pip install --user av==19.0.2 pillow==13.0.0")
 
 CURVES = {
     "linear": lambda u: u,
