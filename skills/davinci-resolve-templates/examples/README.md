@@ -3,7 +3,7 @@
 Specs of templates built with the skill. Build one:
 
 ```bash
-python3 ~/.claude/skills/davinci-resolve-templates/scripts/generate.py \
+python3 <SKILL_DIR>/scripts/generate.py \
   examples/typewriter-box/spec.py --out out/typewriter-box --pack
 ```
 

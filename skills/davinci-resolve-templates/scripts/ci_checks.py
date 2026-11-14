@@ -2,8 +2,8 @@
 """Repository checks used by CI (and runnable locally).
 
   ci_checks.py skill      SKILL.md frontmatter: name, description length, allowed-tools
-  ci_checks.py settings   build every examples/*/spec.py and templates/*.py, then parse each
-                          .setting (plus references/examples/*.setting) and every Fusion
+  ci_checks.py settings   build every examples/*/spec.py and templates/*.py (inside the skill folder), then
+                          parse each .setting (plus references/examples/*.setting) and every Fusion
                           expression with a real Lua parser (lupa)
   ci_checks.py scan       secrets and personal absolute paths in tracked files
 
@@ -16,14 +16,15 @@ import subprocess
 import sys
 import tempfile
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCRIPTS = os.path.join(ROOT, "scripts")
+SCRIPTS = os.path.dirname(os.path.abspath(__file__))
+SKILL = os.path.dirname(SCRIPTS)                      # skills/davinci-resolve-templates
+ROOT = os.path.dirname(os.path.dirname(SKILL))         # repository root
 MAX_DESCRIPTION = 1024
 
 
 def check_skill():
     errs = []
-    text = open(os.path.join(ROOT, "SKILL.md"), encoding="utf-8").read()
+    text = open(os.path.join(SKILL, "SKILL.md"), encoding="utf-8").read()
     m = re.match(r"^---\n(.*?)\n---\n", text, re.S)
     if not m:
         return ["SKILL.md: no YAML frontmatter"]
@@ -40,7 +41,7 @@ def check_skill():
         errs.append("SKILL.md: allowed-tools list is missing")
     for ref in re.findall(r"`((?:references|scripts|templates|examples)/[^`*<>]+?)`", text):
         ref = ref.split()[0]                     # `scripts/x.py --flag` -> scripts/x.py
-        if not os.path.exists(os.path.join(ROOT, ref.rstrip("/"))):
+        if not os.path.exists(os.path.join(SKILL, ref.rstrip("/"))):
             errs.append(f"SKILL.md: referenced path does not exist: {ref}")
     return errs
 
@@ -73,11 +74,11 @@ def check_settings():
     try:
         import lupa
     except ImportError:
-        return ["lupa is not installed: python3 -m pip install lupa"]
+        return ["lupa is not installed: python3 -m pip install lupa==2.8"]
     errs = []
     out = tempfile.mkdtemp(prefix="drc-ci-")
-    specs = sorted(glob.glob(os.path.join(ROOT, "examples", "*", "spec.py")) +
-                   glob.glob(os.path.join(ROOT, "templates", "*.py")))
+    specs = sorted(glob.glob(os.path.join(SKILL, "examples", "*", "spec.py")) +
+                   glob.glob(os.path.join(SKILL, "templates", "*.py")))
     for spec in specs:
         rel = os.path.relpath(spec, ROOT)
         dst = os.path.join(out, os.path.basename(os.path.dirname(spec)) if spec.endswith("spec.py")
@@ -92,7 +93,7 @@ def check_settings():
     collect = lua.execute(LUA_COLLECT)
     check = lua.eval(LUA_CHECK)
     files = sorted(glob.glob(os.path.join(out, "**", "*.setting"), recursive=True) +
-                   glob.glob(os.path.join(ROOT, "references", "examples", "*.setting")))
+                   glob.glob(os.path.join(SKILL, "references", "examples", "*.setting")))
     for f in files:
         name = os.path.relpath(f, out) if f.startswith(out) else os.path.relpath(f, ROOT)
         res = collect(open(f, encoding="utf-8").read())
@@ -123,6 +124,15 @@ SCAN_SKIP = ("scripts/ci_checks.py",)
 def check_scan():
     errs = []
     files = subprocess.run(["git", "ls-files"], capture_output=True, text=True, cwd=ROOT).stdout.split()
+    for rel in files:
+        if re.search(r"(^|/)(\.DS_Store|Thumbs\.db|__MACOSX)(/|$)", rel):
+            errs.append(f"{rel}: OS junk file is tracked")
+    req = os.path.join(ROOT, "requirements-dev.txt")
+    if os.path.exists(req):
+        for lineno, line in enumerate(open(req, encoding="utf-8").read().splitlines(), 1):
+            line = line.strip()
+            if line and not line.startswith("#") and "==" not in line:
+                errs.append(f"requirements-dev.txt:{lineno}: version is not pinned with ==: {line}")
     for rel in files:
         if rel in SCAN_SKIP:
             continue

@@ -8,7 +8,7 @@ letter, the sticky text is written with a wipe. Decor = PNG assets
 import os
 import sys
 
-sys.path.insert(0, os.path.expanduser("~/.claude/skills/davinci-resolve-templates/scripts"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "scripts"))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fusion_lib as fl  # noqa: E402
 from fusion_anim import Timeline, place_image  # noqa: E402

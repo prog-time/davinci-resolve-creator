@@ -26,7 +26,7 @@ import sys
 try:
     from PIL import Image, ImageChops, ImageOps, ImageStat
 except ImportError:
-    sys.exit("needs Pillow: python3 -m pip install --user pillow")
+    sys.exit("needs Pillow: python3 -m pip install --user pillow==13.0.0")
 
 
 def parse_el(spec):

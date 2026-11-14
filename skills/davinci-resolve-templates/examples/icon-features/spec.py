@@ -6,7 +6,7 @@ Reference: screenshot 958x278 (crop), scaled x1.6 into the lower third of a
 import os
 import sys
 
-sys.path.insert(0, os.path.expanduser("~/.claude/skills/davinci-resolve-templates/scripts"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "scripts"))
 import fusion_lib as fl  # noqa: E402
 from fusion_anim import Timeline, clamp01  # noqa: E402
 from fusion_lib import Publish, background, merge, publish_color, text, transform  # noqa: E402

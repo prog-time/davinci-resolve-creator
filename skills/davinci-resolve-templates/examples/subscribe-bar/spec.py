@@ -6,7 +6,7 @@ Reference: 554x360 screenshot, scaled x1.4, block centered in 1920x1080.
 import os
 import sys
 
-sys.path.insert(0, os.path.expanduser("~/.claude/skills/davinci-resolve-templates/scripts"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "scripts"))
 import fusion_lib as fl  # noqa: E402
 from fusion_anim import Timeline, clamp01, place_image  # noqa: E402
 from fusion_lib import Publish, background, merge, publish_color, rect_mask, text, transform  # noqa: E402

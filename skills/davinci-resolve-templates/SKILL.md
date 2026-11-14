@@ -58,7 +58,7 @@ of `$SKILL_DIR` in every command. Put working files into the current project:
    The script reports background, palette, element boxes, gaps and
    `scale.factor` with the formula to map into the frame. Take colors as the
    median of a region, not a single pixel. Without Pillow, tell the user:
-   `python3 -m pip install --user pillow`. If they decline, measure by eye
+   `python3 -m pip install --user pillow==13.0.0`. If they decline, measure by eye
    and warn about the precision.
 3. **If the input is a video** (`.mov`, `.mp4`), split it into frames first:
 
@@ -150,6 +150,16 @@ Show it and **wait for confirmation**:
    ignored), the final check is still a screenshot from Resolve.
 
 ### Step 5 — Install into its own group
+
+**Cloud sandbox (claude.ai, Cowork, any machine without Resolve).** Run
+`bash "$SKILL_DIR/scripts/install_macos.sh" --detect` first. If the OS is not
+macOS, or `--detect` finds no Resolve (no local Templates folder), do not
+install anything. Give the user the packed `.drfx` as a file (attach it or
+point to its path in the output folder) and tell them to install it by hand:
+double-click or drag the `.drfx` into the Resolve window, or copy it into the
+Templates folder of their Resolve (paths in `references/setting-format.md`),
+then restart Resolve. Everything before this step (analysis, spec, build,
+previews, `.drfx`) works in the sandbox as is.
 
 The group is the path inside the `.drfx`: `Edit/<Category>/<GROUP>/`.
 
