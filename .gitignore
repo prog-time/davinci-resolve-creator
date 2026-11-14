@@ -7,7 +7,9 @@
 
 # build output and generated assets (photos stay local)
 out/
-examples/*/assets/
+skills/davinci-resolve-templates/examples/*/assets/
 __pycache__/
 *.pyc
 .DS_Store
+Thumbs.db
+__MACOSX/
