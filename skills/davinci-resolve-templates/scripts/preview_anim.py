@@ -110,7 +110,8 @@ class Evaluator:
 
 
 class Renderer:
-    def __init__(self, tools, ev, scale):
+    def __init__(self, tools, ev, scale, assets=None):
+        self.assets = assets or {}       # {file name: source path} from the spec's ASSETS
         self.by = {t.name: t for t in tools}
         self.ev = ev
         self.s = scale
@@ -229,6 +230,8 @@ class Renderer:
 
     def r_Loader(self, t):
         path = getattr(t, "path", "")
+        if not (path and os.path.exists(path)):            # not installed yet: use the spec's source
+            path = self.assets.get(os.path.basename(path or ""), path)
         if path and os.path.exists(path):
             im = Image.open(path).convert("RGBA")
         else:                                              # missing asset: grey placeholder
@@ -251,6 +254,12 @@ class Renderer:
             fg.putalpha(fg.split()[3].point(lambda a: int(a * blend)))
         bg.alpha_composite(fg)
         return bg
+
+    def r_Blur(self, t):
+        """Gaussian blur; XBlurSize treated as a radius of size/2 frame px (approximate)."""
+        img = self.src(t, "Input")
+        size = float(self.v(t.name, "XBlurSize", 1.0) or 0.0)
+        return img.filter(ImageFilter.GaussianBlur(size / 2 * self.s)) if size > 0 else img
 
     def r_Transform(self, t):
         img = self.src(t, "Input")
@@ -281,10 +290,10 @@ def load_spec(path):
     return mod
 
 
-def render_animation(tools, out_name, frames, step=2, scale=0.25, bg="#202020", render_end=None):
+def render_animation(tools, out_name, frames, step=2, scale=0.25, bg="#202020", render_end=None, assets=None):
     """Return a list of (frame, RGB image) for frames 0..frames-1 every `step`."""
     ev = Evaluator(tools, render_end or frames)
-    r = Renderer(tools, ev, scale)
+    r = Renderer(tools, ev, scale, assets)
     base = tuple(int(c * 255) for c in fl.hex_rgb(bg))
     shots = []
     for f in range(0, frames, step):
@@ -294,6 +303,23 @@ def render_animation(tools, out_name, frames, step=2, scale=0.25, bg="#202020", 
         canvas.paste(img, (0, 0), img)
         shots.append((f, canvas))
     return shots
+
+
+def render_still(tools, out_name, path, frame=60, width=400, bg="#202020", render_end=300,
+                 crop=None, assets=None):
+    """Thumbnail with every expression evaluated: frame `frame` of a `render_end`-frame
+    clip (pick a frame where the entrance is over and the exit has not started),
+    optional crop=(x0, y0, x1, y1) in frame px, resized to `width`. Returns path."""
+    ev = Evaluator(tools, render_end)
+    r = Renderer(tools, ev, 1.0, assets)
+    ev.at(frame)
+    img = r.frame(out_name)
+    canvas = Image.new("RGB", img.size, tuple(int(c * 255) for c in fl.hex_rgb(bg)))
+    canvas.paste(img, (0, 0), img)
+    if crop:
+        canvas = canvas.crop(crop)
+    canvas.resize((width, max(1, round(canvas.height * width / canvas.width))), Image.LANCZOS).save(path)
+    return path
 
 
 def save_outputs(shots, out_dir, title, fps=30, step=2, sheet_every=10):
@@ -329,7 +355,8 @@ def main():
     fl.set_frame(*getattr(mod, "FRAME", (1920, 1080)))
     title = a.variant or next(iter(mod.VARIANTS))
     res = mod.build(mod.VARIANTS[title], getattr(mod, "ANIM", "expr"))
-    shots = render_animation(res[0], res[2], a.frames, a.step, a.scale, getattr(mod, "PREVIEW_BG", "#202020"))
+    shots = render_animation(res[0], res[2], a.frames, a.step, a.scale, getattr(mod, "PREVIEW_BG", "#202020"),
+                             assets=getattr(mod, "ASSETS", None))
     gif, sheet = save_outputs(shots, a.out, title, step=a.step, sheet_every=a.sheet_every)
     print(f"{gif}\n{sheet}")
 

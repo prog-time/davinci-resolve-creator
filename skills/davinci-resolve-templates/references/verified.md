@@ -67,11 +67,16 @@ Diagnostic pack: `scripts/make_test_pack.py`.
 | 10 | Preview `.png` next to `.setting` shown in the Effects Library | any template | thumbnail instead of the default icon |
 | 11 | Effect (`main_input`) and Generator templates | — | — |
 | 12 | Windows / Linux install paths; unzip install for the website build | — | — |
-| 13 | `Loader` in a title (`fl.loader`, still: Loop=1, GlobalStart −1000…100000), file in `Fusion/Assets/<group>/` of the App Store container | Test 14, Subscribe Bar | the photo is visible in the circle on every frame |
+| 13 | `Loader` in a title (`fl.loader`, still: Loop=0, GlobalStart = GlobalEnd = 0 like commercial packs), file in `Fusion/Assets/<group>/` of the App Store container | Test 14, Subscribe Bar | the photo is visible in the circle on every frame |
 | 14 | `Merge` with `EffectMask` (round crop) and `Merge.Size` = px / image width (no rescaling of the foreground) | Test 14, Subscribe Bar | photo exactly Ø167 |
 | 15 | `math.cos` / `math.sin` / `math.pi` and `abs` in expressions | Test 17, Subscribe Bar | photo spiral, button press |
 | 16 | `EffectMask` on Text+ and `RectangleMask.SoftEdge` (title writing); 9 Loaders in one title | Test 16, Scrapbook Note | the title is revealed left to right with a soft edge |
 | 17 | Text+ `CharacterSpacing` and `LineSpacing` units (assumed: spacing adds (cs−1)×Size×1920 px per character) | Test 19, Test 20, Profile Card | letter spacing matches the reference |
+| 19 | Loader still survives trimming/extending the title clip with the commercial-pack settings (Clip GlobalStart = GlobalEnd = 0, Loop 0, no timing inputs). FAILED twice before: with Loop=1, GlobalStart −1000…100000 the icon vanished after a resize; adding GlobalIn/Out, HoldFirst/LastFrame, MissingFrames did not help, Cmd+Z did not restore it (Telegram Lower Third, 2026-11-13) | Telegram Lower Third | the icon stays after changing the clip length |
+| 20 | `Depth = 3` (float16) on Background / Text+ (`fl.IMAGE_DEPTH`) | Telegram Lower Third | no banding in the card gradient and glow; nothing else changes |
+| 21 | `Underlay` tools and `Colors = { TileColor = ... }` inside a MacroOperator (`fl.layout`) | Telegram Lower Third, Modern Callout | the template loads as before; on the Fusion page the nodes are grouped in named, colored blocks. If a template stops appearing, rebuild with `DRT_UNDERLAYS=0` |
+| 22 | Loader file picker in the Inspector: `InstanceInput { SourceOp = "LdIcon", Source = "Clip" }` + `BetterResize` (Width/Height = fixed px) so any picked file keeps the layout size | Telegram Lower Third ("Иконка: файл") | a Browse field appears in the Edit Inspector; picking another PNG swaps the icon at the same size and position; it still survives clip trimming |
+| 18b | `Setting:/<file>` Loader path with the image packed inside the `.drfx` next to the `.setting` (`fl.ASSET_PATHS = "setting"`). Used by the commercial "Like Subscribe Bell" pack (Setting:/avatar.png) | Telegram Lower Third | the icon shows without anything in Fusion/Assets; the pack works on another Mac |
 | 18 | Path map in a Loader path (`Fusion:Assets/<group>/<file>`) instead of an absolute path | Test 15 | the image shows like in test 14 → templates with images become portable |
 
 If expressions (item 4) fail, switch templates to `ANIM = "keys"` (entrance

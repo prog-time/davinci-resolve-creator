@@ -10,7 +10,31 @@
 - The graph ends with a master Transform (`XfCard` / `XfBlock`) and the
   output merge `MrgOut` over a transparent background. The macro output is
   `MrgOut`.
-- Use `fl.layout(tools)` to lay the nodes out in the flow view.
+- Lay the graph out with `fl.layout(tools, out.name, labels={...})` as the
+  last step of `build()`. It draws the main line (from `MrgOut` back through
+  the heaviest input) straight left to right, puts every branch above the node
+  it feeds as a tidy tree (no crossing wires), moves wire-less helpers (color
+  holders) to a "Controls" row below, colors tiles by content (shape / text /
+  image / anim / output) and wraps every block in a named Underlay.
+  `labels` maps the main-line node that ENDS a block to its name, e.g.
+  `{"MrgCard": "Card", "MrgTitle": "Title"}`; what follows the last label is
+  "Output". `DRT_UNDERLAYS=0` builds without Underlays (bisection).
+- **One resample per element.** Don't put a Transform after Text+ or a Loader
+  just to slide or pop it: animate Text+ `Center` directly and scale an image
+  with the `Size`/`Center` of the Merge that places it. A Transform between two
+  Merges cannot be concatenated by Fusion and resamples the whole image again
+  (soft text). Consecutive Transforms (`XfSlide` → `XfBlock`) are fine: Fusion
+  merges them into one.
+- **Thumbnail.** `generate.py` renders `<Name>.png` with every expression
+  evaluated (`preview_anim.render_still`, needs lupa) at `PREVIEW_FRAME`
+  (default 60: entrance done, exit not started), optionally cropped with
+  `PREVIEW_CROP = (x0, y0, x1, y1)`. Images from `ASSETS` are read from their
+  source when they are not installed yet. Without lupa it falls back to the
+  static preview (expressions ignored).
+- **float16.** Backgrounds and Text+ are generated with `Depth = 3` (float16,
+  `fl.IMAGE_DEPTH`): no banding in gradients, glows and blurs. A Merge takes the
+  depth of its Background input, so keep the canvas float too.
+  `DRT_DEPTH=0` falls back to Resolve's default.
 
 ## Fusion units (verified, see verified.md)
 
@@ -74,6 +98,23 @@ the icon site (fontawesome.com → Copy Glyph) into the "Item N: icon" field.
 Warn that only free icons of the installed style work.
 
 ## Logo and photos
+
+**Preferred (as commercial packs do it): the picture travels inside the
+`.drfx`.** Put `fl.ASSET_PATHS = "setting"` at the top of the spec, list the
+file in `ASSETS = {"<unique-name>.png": "<source>"}` and load it with
+`fl.loader("LdPhoto", fl.asset_path(GROUP, "<unique-name>.png"))` → the Loader
+reads `Setting:/<unique-name>.png` and `generate.py --pack` puts the file next
+to the `.setting` (nothing is copied into Assets, the pack works on any Mac).
+Name the file uniquely within the group (e.g. `<template>-icon.png`): all
+templates of a group share one folder. To let the user swap the picture,
+publish the Loader's `Clip` (`Publish("LdPhoto", "Clip", "Фото: файл")`) and
+put `fl.letterbox("LbPhoto", "LdPhoto", w, h)` between the Loader and the
+Merge so any picked file keeps the layout size (Pan-and-Scan, no distortion).
+Example: `resolve-templates/telegram-lower-third`. Seen working in the
+commercial "Like Subscribe Bell" pack ("Your Avatar"); not yet confirmed in
+our own templates (verified.md 18b, 22).
+
+The older way (below) copies the file into the Resolve Assets folder:
 
 A picture can be baked into the template: set
 `ASSETS = {"name.png": "<source>"}` in the spec and use

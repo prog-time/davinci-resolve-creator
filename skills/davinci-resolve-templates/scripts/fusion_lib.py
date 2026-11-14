@@ -31,6 +31,17 @@ MASK_UNIT = "height"
 TEXT_LINE_K = 0.8023
 TEXT_SIZE_K = 1.51
 
+# Image depth of generated Backgrounds and Text+ (Image tab -> Depth):
+# 0 default, 1 int8, 2 int16, 3 float16, 4 float32. float16 avoids banding and
+# clipping in gradients, glows and blurs; a Merge takes the depth of its
+# Background input, so the whole stack stays float. UNVERIFIED (verified.md 20).
+# DRT_DEPTH=0 keeps Resolve's default.
+IMAGE_DEPTH = int(os.environ.get("DRT_DEPTH", "3"))
+
+# Underlay blocks and tile colors in the flow view (verified.md 21).
+# DRT_UNDERLAYS=0 builds without Underlay tools (tile colors stay).
+UNDERLAYS = os.environ.get("DRT_UNDERLAYS", "1") != "0"
+
 
 def set_frame(w, h):
     global FRAME_W, FRAME_H
@@ -112,6 +123,7 @@ class Tool:
         self.name, self.kind, self.pos = name, kind, pos
         self.inputs = {}
         self.user_controls = []  # (id, dict)
+        self.tile = None         # (r, g, b) tile color in the flow view
 
     def set(self, key, value=None, expr=None):
         self.inputs[key] = Inp(value=value, expr=expr)
@@ -146,6 +158,8 @@ class Tool:
             out.append(f"{ind}\t\t{key} = {v.render()},")
         out.append(f"{ind}\t}},")
         out.append(f"{ind}\tViewInfo = OperatorInfo {{ Pos = {{ {self.pos[0]}, {self.pos[1]} }} }},")
+        if self.tile:
+            out.append(f"{ind}\tColors = {{ TileColor = {_rgb_table(self.tile)}, }},")
         if self.user_controls:
             out.append(f"{ind}\tUserControls = ordered() {{")
             for cid, spec in self.user_controls:
@@ -241,6 +255,8 @@ def animate_point(tool, key, keys, ease=True):
 
 def _frame(t):
     t.set("Width", FRAME_W).set("Height", FRAME_H).set("UseFrameFormatSettings", 1)
+    if IMAGE_DEPTH:
+        t.set("Depth", IMAGE_DEPTH)
     t.set("Gamut.SLogVersion", FuID("SLog2"))
     return t
 
@@ -413,7 +429,7 @@ def check_fit(tools, fits):
         w = text_width(by[name])
         if w is None:
             out.append(f"FIT: {name}: cannot measure (Pillow or font file missing)")
-        elif w > limit:
+        elif w > limit + 0.5:          # ignore sub-pixel rounding
             out.append(f"FIT: {name} is {w:.0f} px wide, limit {limit:.0f} px (+{w - limit:.0f})")
     return out
 
@@ -463,6 +479,11 @@ def resolve_fusion_dirs():
 #   "pathmap"  — "Fusion:Assets/<group>/<file>", resolved by Resolve itself (portable).
 #                UNVERIFIED: enable after Test 15 of the test pack passes
 #                (env DRT_ASSET_PATHS=pathmap or ASSET_PATHS = "pathmap" in the spec).
+#   "setting"  — "Setting:/<file>": the image is packed INSIDE the .drfx next to the
+#                .setting and resolved relative to it (how commercial packs ship
+#                avatars/photos). Portable, nothing to copy into Assets. Preferred for
+#                new templates; set `fl.ASSET_PATHS = "setting"` in the spec
+#                (verified.md 18b).
 ASSET_PATHS = os.environ.get("DRT_ASSET_PATHS", "absolute")
 
 
@@ -474,7 +495,10 @@ def asset_dir(group):
 
 def asset_path(group, filename, mode=None):
     """Path written into the Loader (see ASSET_PATHS)."""
-    if (mode or ASSET_PATHS) == "pathmap":
+    mode = mode or ASSET_PATHS
+    if mode == "setting":
+        return f"Setting:/{filename}"
+    if mode == "pathmap":
         return f"Fusion:Assets/{group}/{filename}"
     return os.path.join(asset_dir(group), filename)
 
@@ -486,7 +510,13 @@ def manifest_path(pack):
 
 
 class LoaderTool(Tool):
-    """Loader for a still image, held on every frame (Loop over a long global range)."""
+    """Loader for a still image, written exactly like commercial Resolve packs do
+    ("Like Subscribe Bell": GlobalStart = GlobalEnd = 0, Loop = 0, no timing inputs).
+    A one-frame still is then shown on every frame and survives trimming the clip.
+
+    The earlier variant (GlobalStart -1000..100000, Loop 1, GlobalIn/Out and
+    HoldFirst/LastFrame inputs) LOST the picture in Resolve 21.2 after the title clip
+    was resized, and Cmd+Z did not bring it back (Telegram Lower Third, 2026-11-13)."""
 
     def __init__(self, name, path):
         super().__init__(name, "Loader")
@@ -501,8 +531,8 @@ class LoaderTool(Tool):
     def render(self, ind="\t\t\t\t"):
         clip = [f'ID = "Clip1"', f"Filename = {lua_str(self.path)}", f'FormatID = "{self.fmt}"',
                 "StartFrame = -1", "LengthSetManually = true", "TrimIn = 0", "TrimOut = 0",
-                "ExtendFirst = 0", "ExtendLast = 0", "Loop = 1", "AspectMode = 0", "Depth = 0",
-                "TimeCode = 0", "GlobalStart = -1000", "GlobalEnd = 100000"]
+                "ExtendFirst = 0", "ExtendLast = 0", "Loop = 0", "AspectMode = 0", "Depth = 0",
+                "TimeCode = 0", "GlobalStart = 0", "GlobalEnd = 0"]
         out = [f"{ind}{self.name} = Loader {{", f"{ind}\tClips = {{",
                f"{ind}\t\tClip {{ {', '.join(clip)}, }},", f"{ind}\t}},",
                f"{ind}\tCtrlWZoom = false,", f"{ind}\tInputs = {{"]
@@ -516,6 +546,18 @@ class LoaderTool(Tool):
 
 def loader(name, path):
     return LoaderTool(name, path)
+
+
+def letterbox(name, src, w_px, h_px, fill=True):
+    """Fit any picture into a w_px x h_px box (so a file picked in the Inspector keeps
+    the layout size). fill=True: Pan-and-Scan (fills the box, crops the overflow),
+    False: Letterbox (whole picture, bars). Mode values as used by commercial packs:
+    1 = Pan-and-Scan. UNVERIFIED in our templates (verified.md 22)."""
+    t = Tool(name, "Letterbox")
+    t.link("Input", src)
+    t.set("Width", int(w_px)).set("Height", int(h_px))
+    t.set("Mode", 1 if fill else 0).set("HiQOnly", 0)
+    return t
 
 
 # ---------- node factories (UNVERIFIED — see references/verified.md) ----------
@@ -723,10 +765,171 @@ def macro(name, tools, publishes, output_tool, main_input=None):
     return "\n".join(lines)
 
 
-def layout(tools, step=110):
-    """Spread nodes left to right in the Fusion flow view."""
-    for i, t in enumerate(tools):
-        t.pos = (i * step, 0)
+def _rgb_table(c):
+    return "{ R = %s, G = %s, B = %s }" % tuple(repr(round(float(x), 3)) for x in c)
+
+
+class UnderlayTool(Tool):
+    """Underlay (named, colored backdrop) grouping a block of nodes in the flow view.
+    pos = top-left corner, size = (w, h) in flow units."""
+
+    def __init__(self, name, pos, size, color):
+        super().__init__(name, "Underlay", pos)
+        self.size, self.color = size, color
+
+    def render(self, ind="\t\t\t\t"):
+        return "\n".join([
+            f"{ind}{self.name} = Underlay {{", f"{ind}\tCtrlWZoom = false,", f"{ind}\tNameSet = true,",
+            f"{ind}\tViewInfo = UnderlayInfo {{ Pos = {{ {self.pos[0]}, {self.pos[1]} }}, "
+            f"Size = {{ {self.size[0]}, {self.size[1]} }} }},",
+            f"{ind}\tColors = {{ TileColor = {_rgb_table(self.color)}, }},",
+            f"{ind}}},"])
+
+
+# Block colors (tile = node, underlay = backdrop, a darker shade of the same hue)
+BLOCK_COLORS = {
+    "shape": (0.30, 0.47, 0.70),     # backgrounds, masks, cards
+    "text": (0.55, 0.38, 0.74),
+    "image": (0.28, 0.58, 0.38),     # Loader-based pictures
+    "anim": (0.82, 0.56, 0.22),      # transforms on the main line
+    "output": (0.72, 0.28, 0.28),
+    "controls": (0.45, 0.45, 0.45),  # expression-only helpers (color holders, ...)
+}
+
+
+def _links(t):
+    """Linked inputs, main line first: Background/Input, then Foreground, masks, others."""
+    order = {"Background": 0, "Input": 0, "Foreground": 1, "EffectMask": 2}
+    return [i.src for k, i in sorted(t.inputs.items(), key=lambda kv: order.get(kv[0], 3)) if i.src]
+
+
+def layout(tools, out=None, step=110, row=66, labels=None):
+    """Lay the graph out as the Fusion habits ask for:
+
+    * the main line (from the output back through the heaviest input of every
+      node) runs straight left to right on y = 0;
+    * every other input of a main-line node is a branch drawn ABOVE it as a
+      tidy tree (inputs further up and to the left), so wires never cross;
+    * expression-only nodes (no wires) go on a row below the main line;
+    * each branch gets a tile color by content (text / image / shape) and,
+      when UNDERLAYS is on, a named Underlay; main-line transforms are "anim",
+      the last merge "output".
+
+    labels: optional {main-line node: "Underlay name"} to name blocks;
+    by default the branch is named after the node it feeds (MrgTitle -> Title).
+    Appends Underlay tools to `tools`; returns tools."""
+    tools[:] = [t for t in tools if t.kind != "Underlay"]
+    by = {t.name: t for t in tools}
+    out = out or tools[-1].name
+    labels = labels or {}
+
+    size_memo = {}
+
+    def upstream(n, seen=None):
+        if n in size_memo:
+            return size_memo[n]
+        seen = seen or set()
+        if n in seen or n not in by:
+            return 0
+        seen.add(n)
+        size_memo[n] = 1 + sum(upstream(s, seen) for s in _links(by[n]))
+        return size_memo[n]
+
+    # main line: follow the heaviest input
+    spine, cur = [], out
+    while cur in by and cur not in spine:
+        spine.append(cur)
+        srcs = _links(by[cur])
+        cur = max(srcs, key=lambda s: upstream(s)) if srcs else None
+    spine.reverse()
+    placed = set(spine)
+
+    def kids(n):
+        res = []
+        for s in _links(by[n]):
+            if s in by and s not in placed and s not in res:
+                res.append(s)
+        return res
+
+    width_memo = {}
+
+    def width(n, seen):
+        if n in seen:
+            return 0
+        seen.add(n)
+        w = sum(width(c, seen) for c in kids(n) if c not in seen)
+        width_memo[n] = max(1, w)
+        return width_memo[n]
+
+    def place(n, col, depth, members):
+        if n in placed:
+            return
+        placed.add(n)
+        by[n].pos = (col * step, -depth * row)
+        members.append(n)
+        c = col
+        for k in kids(n):
+            if k in placed:
+                continue
+            place(k, c, depth + 1, members)
+            c -= width_memo.get(k, 1)
+
+    # default block labels: every main-line Merge that has a branch ends a block
+    if not labels:
+        labels = {n: re.sub(r"^(Mrg|Xf|Fx)", "", n) for n in spine
+                  if by[n].kind == "Merge" and len(_links(by[n])) > 1 and n != out}
+
+    blocks, members = [], []     # (label, members) — a main-line segment plus its branches
+    col = 0
+    for n in spine:
+        branches = kids(n)
+        need = sum(width(k, set()) for k in branches)
+        col = col + max(1, need)
+        by[n].pos = (col * step, 0)
+        members.append(n)
+        c = col
+        for k in branches:
+            if k in placed:
+                continue
+            w = width_memo.get(k, 1)
+            place(k, c, 1, members)
+            c -= w
+        if n in labels:
+            blocks.append((labels[n], members))
+            members = []
+    if members:
+        blocks.append(("Output", members))
+
+    # nodes without wires (expression-only helpers) on a row below
+    loose = [t.name for t in tools if t.name not in placed]
+    for i, n in enumerate(loose):
+        by[n].pos = ((i + 1) * step, row * 2)
+        placed.add(n)
+    if loose:
+        blocks.append(("Controls", loose))
+
+    for label, mem in blocks:
+        kinds = {by[m].kind for m in mem}
+        kind = ("controls" if label == "Controls" else "output" if out in mem else
+                "text" if "TextPlus" in kinds else "image" if "Loader" in kinds else "shape")
+        for m in mem:
+            t = by[m]
+            t.tile = BLOCK_COLORS["output" if m == out else "anim" if t.kind == "Transform" else
+                                  "text" if t.kind == "TextPlus" else "image" if t.kind == "Loader" else
+                                  "controls" if kind == "controls" else "shape"]
+        if not UNDERLAYS:
+            continue
+        xs = [by[m].pos[0] for m in mem]
+        ys = [by[m].pos[1] for m in mem]
+        name = "Ul" + re.sub(r"[^A-Za-z0-9_]", "", label.title().replace(" ", ""))
+        while name in by:
+            name += "_"
+        x_left, y_top = min(xs) - step / 2 + 6, min(ys) - row * 0.6
+        ul = UnderlayTool(name, (x_left, y_top),
+                          (max(xs) + step / 2 - 6 - x_left, max(ys) + row * 0.45 - y_top),
+                          tuple(c * 0.5 for c in BLOCK_COLORS[kind]))
+        by[name] = ul
+        tools.append(ul)
     return tools
 
 
