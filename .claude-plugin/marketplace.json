@@ -1,0 +1,21 @@
+{
+  "name": "prog-time",
+  "owner": {
+    "name": "prog-time",
+    "url": "https://github.com/prog-time"
+  },
+  "metadata": {
+    "description": "Claude Code plugins by prog-time"
+  },
+  "plugins": [
+    {
+      "name": "davinci-resolve-creator",
+      "source": "./",
+      "description": "Generates DaVinci Resolve Fusion templates (.setting / .drfx) from an image, a video or a description.",
+      "version": "1.0.0",
+      "license": "MIT",
+      "category": "creative",
+      "keywords": ["davinci-resolve", "fusion", "motion-graphics"]
+    }
+  ]
+}

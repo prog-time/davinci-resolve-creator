@@ -1,0 +1,14 @@
+{
+  "name": "davinci-resolve-creator",
+  "displayName": "DaVinci Resolve Creator",
+  "version": "1.0.0",
+  "description": "Skill that turns a screenshot, a reference video or a description into a DaVinci Resolve Fusion template (.setting / .drfx) with editable texts, fonts, colors and animation.",
+  "author": {
+    "name": "prog-time",
+    "url": "https://github.com/prog-time"
+  },
+  "homepage": "https://github.com/prog-time/davinci-resolve-creator",
+  "repository": "https://github.com/prog-time/davinci-resolve-creator",
+  "license": "MIT",
+  "keywords": ["davinci-resolve", "fusion", "motion-graphics", "titles", "claude-skills"]
+}
