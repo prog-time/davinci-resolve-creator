@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python3 scripts/ci_checks.py skill
+      - run: python3 skills/davinci-resolve-templates/scripts/ci_checks.py skill
 
   build-examples:
     name: Build examples + Lua parse
@@ -32,8 +32,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python3 -m pip install lupa
-      - run: python3 scripts/ci_checks.py settings
+      - run: python3 -m pip install lupa==2.8
+      - run: python3 skills/davinci-resolve-templates/scripts/ci_checks.py settings
 
   unit-tests:
     name: Unit tests
@@ -60,4 +60,4 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python3 scripts/ci_checks.py scan
+      - run: python3 skills/davinci-resolve-templates/scripts/ci_checks.py scan
