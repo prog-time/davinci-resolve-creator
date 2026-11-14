@@ -4,7 +4,7 @@ import sys
 import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(ROOT, "scripts"))
+sys.path.insert(0, os.path.join(ROOT, "skills", "davinci-resolve-templates", "scripts"))
 
 import fusion_lib as fl  # noqa: E402
 
