@@ -118,8 +118,10 @@ if [[ -z "$DRFX" || ! -f "$DRFX" ]]; then
   exit 1
 fi
 
-# Only accept archives whose entries are Edit/<Category>/<Group>/<file> (no .., no absolute paths).
-BAD="$(unzip -Z1 "$DRFX" | grep -vE '^Edit/[^/]+/[^/]+/[^/]+$' | grep -vE '/$' || true)"
+# Only accept archives whose entries are Edit/<Category>/<Group>/[<subfolder>/...]<file>
+# (third-party packs nest subgroups, e.g. Edit/Titles/Pack/Callouts/x.setting);
+# no .., no absolute paths.
+BAD="$(unzip -Z1 "$DRFX" | grep -vE '^Edit/[^/]+/[^/]+/([^/]+/)*[^/]+$' | grep -vE '/$' || true)"
 if [[ -n "$BAD" ]] || unzip -Z1 "$DRFX" | grep -q '\.\.'; then
   echo "refusing: unexpected entries in $DRFX:" >&2
   echo "$BAD" >&2

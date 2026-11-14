@@ -202,7 +202,7 @@ def test_loader_renders_still_clip():
     out = ld.render()
     assert 'Filename = "/tmp/photo.png"' in out
     assert 'FormatID = "PNGFormat"' in out
-    assert "Loop = 1" in out and "GlobalEnd = 100000" in out
+    assert "Loop = 0" in out and "GlobalStart = 0" in out and "GlobalEnd = 0" in out
     assert '["Clip1.PNGFormat.PostMultiply"]' in out
 
 
@@ -213,3 +213,97 @@ def test_loader_jpeg_format():
 def test_asset_path_is_under_assets_group(monkeypatch):
     monkeypatch.setattr(fl, "resolve_fusion_dirs", lambda: ["/base/Fusion"])
     assert fl.asset_path("Prog-time", "a.png") == "/base/Fusion/Assets/Prog-time/a.png"
+
+
+# ---------- flow layout, tile colors, underlays, depth ----------
+
+def _demo_graph():
+    tools = [fl.background("BgCanvas", "#000000", alpha=0.0),
+             fl.rect_mask("MaskCard", 300, 900, 400, 120),
+             fl.background("BgCard", "#202020", mask="MaskCard"),
+             fl.merge("MrgCard", "BgCanvas", "BgCard"),
+             fl.text("TxtTitle", "Hi", 200, 900, 40, "#ffffff"),
+             fl.merge("MrgTitle", "MrgCard", "TxtTitle"),
+             fl.background("BgHolder", "#ff0000"),
+             fl.transform("XfBlock", "MrgTitle"),
+             fl.background("BgOut", "#000000", alpha=0.0),
+             fl.merge("MrgOut", "BgOut", "XfBlock")]
+    return tools
+
+
+def test_layout_main_line_straight_and_branches_above():
+    tools = fl.layout(_demo_graph(), "MrgOut", labels={"MrgCard": "Card", "MrgTitle": "Title"})
+    by = {t.name: t for t in tools}
+    # main line = heaviest input chain; the empty canvas is a branch above MrgCard
+    main = ["MaskCard", "BgCard", "MrgCard", "MrgTitle", "XfBlock", "MrgOut"]
+    assert all(by[n].pos[1] == 0 for n in main)
+    xs = [by[n].pos[0] for n in main]
+    assert xs == sorted(xs) and len(set(xs)) == len(xs)
+    assert by["BgCanvas"].pos[1] < 0 and by["BgCanvas"].pos[0] <= by["MrgCard"].pos[0]
+    assert by["TxtTitle"].pos[1] < 0 and by["BgOut"].pos[1] < 0
+    assert by["BgHolder"].pos[1] > 0                       # wire-less helper below
+    positions = [t.pos for t in tools if t.kind != "Underlay"]
+    assert len(positions) == len(set(positions))           # no two nodes on one spot
+
+
+def test_layout_underlays_and_tile_colors():
+    tools = fl.layout(_demo_graph(), "MrgOut", labels={"MrgCard": "Card", "MrgTitle": "Title"})
+    names = {t.name for t in tools if t.kind == "Underlay"}
+    assert {"UlCard", "UlTitle", "UlOutput", "UlControls"} <= names
+    by = {t.name: t for t in tools}
+    assert by["TxtTitle"].tile == fl.BLOCK_COLORS["text"]
+    assert by["MrgOut"].tile == fl.BLOCK_COLORS["output"]
+    src = fl.macro("Demo", tools, [], "MrgOut")
+    assert "UlCard = Underlay {" in src and "TileColor" in src
+    assert fl.validate(src) is True
+
+
+def test_layout_without_underlays(monkeypatch):
+    monkeypatch.setattr(fl, "UNDERLAYS", False)
+    tools = fl.layout(_demo_graph(), "MrgOut")
+    assert not [t for t in tools if t.kind == "Underlay"]
+
+
+def test_backgrounds_and_text_are_float16():
+    assert val(fl.background("BgA", "#ffffff"), "Depth") == 3
+    assert val(fl.text("TxtA", "a", 0, 0, 20, "#ffffff"), "Depth") == 3
+
+
+def test_loader_is_a_plain_still_like_commercial_packs():
+    # no timing inputs: the -1000..100000 / Hold variant lost the picture after a clip resize
+    ld = fl.loader("LdA", "/tmp/a.png")
+    for k in ("GlobalIn", "GlobalOut", "Loop", "HoldFirstFrame", "HoldLastFrame", "MissingFrames"):
+        assert k not in ld.inputs
+
+
+# ---------- images packed inside the .drfx (Setting:/) ----------
+
+def test_asset_path_setting_mode():
+    assert fl.asset_path("Grp", "a.png", mode="setting") == "Setting:/a.png"
+
+
+def test_letterbox_fits_picture_into_box():
+    lb = fl.letterbox("LbA", "LdA", 188, 188)
+    assert val(lb, "Width") == 188 and val(lb, "Height") == 188 and val(lb, "Mode") == 1
+    assert lb.inputs["Input"].src == "LdA"
+
+
+def test_pack_puts_assets_next_to_setting(tmp_path):
+    import zipfile
+    from pack_drfx import pack
+    st = tmp_path / "T.setting"
+    st.write_text("{}")
+    img = tmp_path / "src.png"
+    img.write_bytes(b"png")
+    out = tmp_path / "T.drfx"
+    pack(str(out), [str(st)], "Grp", "Titles", assets={"t-icon.png": str(img)})
+    names = zipfile.ZipFile(out).namelist()
+    assert "Edit/Titles/Grp/t-icon.png" in names and "Edit/Titles/Grp/T.setting" in names
+
+
+def test_pack_rejects_asset_paths_with_folders(tmp_path):
+    from pack_drfx import pack
+    st = tmp_path / "T.setting"
+    st.write_text("{}")
+    with pytest.raises(ValueError):
+        pack(str(tmp_path / "T.drfx"), [str(st)], "Grp", assets={"../x.png": str(st)})

@@ -15,7 +15,9 @@ import zipfile
 CATEGORIES = ("Titles", "Generators", "Effects", "Transitions")
 
 
-def pack(out, files, group, category="Titles"):
+def pack(out, files, group, category="Titles", assets=None):
+    """assets: {file name: source path} packed next to the .setting files
+    (Loader paths "Setting:/<file name>")."""
     if category not in CATEGORIES:
         raise ValueError(f"category must be one of {CATEGORIES}")
     if not group or any(c in group for c in "/\\:"):
@@ -30,6 +32,14 @@ def pack(out, files, group, category="Titles"):
                     arc = f"Edit/{category}/{group}/{os.path.basename(p)}"
                     z.write(p, arc)
                     entries.append(arc)
+        for name, src in (assets or {}).items():
+            arc = f"Edit/{category}/{group}/{name}"
+            if "/" in name or "\\" in name or arc in entries:
+                raise ValueError(f"asset name {name!r} is not a plain file name or clashes with a template file")
+            if not os.path.exists(src):
+                raise FileNotFoundError(f"asset {name!r}: {src} not found")
+            z.write(src, arc)
+            entries.append(arc)
     return entries
 
 

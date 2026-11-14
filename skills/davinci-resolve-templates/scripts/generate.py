@@ -5,6 +5,8 @@ Spec contract (see templates/pricing_card.py):
     GROUP = "My Group"                 # template group (folder) in Resolve
     PACK = "My Template"               # .drfx file name (default: first variant)
     PREVIEW_BG = "#ebe7e1"             # optional: preview background (dark text on light video)
+    PREVIEW_FRAME = 60                 # optional: thumbnail frame (entrance done, exit not started)
+    PREVIEW_CROP = (0, 600, 1067, 1080)  # optional: thumbnail crop in frame px
     ASSETS = {"a.png": "src/a.png"}    # optional: images for fl.loader(), copied on --install
     FIT = [("TxtTitle", 700)]          # optional: warn when a text node is wider (px)
     CATEGORY = "Titles"                # Titles | Generators | Effects
@@ -54,7 +56,7 @@ def main():
     ap.add_argument("--pack", action="store_true")
     ap.add_argument("--install", action="store_true", help="pack and run install_macos.sh")
     ap.add_argument("--no-preview", action="store_true")
-    ap.add_argument("--asset-paths", choices=("absolute", "pathmap"),
+    ap.add_argument("--asset-paths", choices=("absolute", "pathmap", "setting"),
                     help="how Loader paths are written (default: spec ASSET_PATHS, env DRT_ASSET_PATHS, absolute)")
     ap.add_argument("--preview-anim", type=int, metavar="FRAMES", nargs="?", const=150,
                     help="also render an animated preview (GIF + frame sheet) of FRAMES frames")
@@ -87,13 +89,22 @@ def main():
         files.append(path)
         for warning in fl.check_fit(tools, getattr(mod, "FIT", [])):
             print(f"WARNING {title}: {warning}")
-        prev = None if a.no_preview else fl.render_preview(tools, os.path.splitext(path)[0] + ".png", output=out_name,
-                                                         bg=getattr(mod, "PREVIEW_BG", "#181818"))
+        prev = None
+        assets = getattr(mod, "ASSETS", None)
+        if not a.no_preview:
+            thumb = os.path.splitext(path)[0] + ".png"
+            try:   # thumbnail with expressions evaluated (needs lupa); static fallback otherwise
+                import preview_anim
+                prev = preview_anim.render_still(tools, out_name, thumb, frame=getattr(mod, "PREVIEW_FRAME", 60),
+                                                 bg=getattr(mod, "PREVIEW_BG", "#181818"),
+                                                 crop=getattr(mod, "PREVIEW_CROP", None), assets=assets)
+            except (SystemExit, ImportError):
+                prev = fl.render_preview(tools, thumb, output=out_name, bg=getattr(mod, "PREVIEW_BG", "#181818"))
         if a.preview_anim:
             try:
                 import preview_anim
                 shots = preview_anim.render_animation(tools, out_name, a.preview_anim, step=2,
-                                                      bg=getattr(mod, "PREVIEW_BG", "#202020"))
+                                                      bg=getattr(mod, "PREVIEW_BG", "#202020"), assets=assets)
                 gif, sheet = preview_anim.save_outputs(shots, a.out, title)
                 print(f"animated preview: {gif}, {sheet}")
             except SystemExit as e:
@@ -107,14 +118,17 @@ def main():
         # one .drfx per spec, named after PACK or the first variant: App Store Resolve keeps
         # packs side by side in one folder, so a group-named pack would overwrite others
         drfx = os.path.join(a.out, f"{getattr(mod, 'PACK', names[0])}.drfx")
-        pack(drfx, files, mod.GROUP, category)
+        packed_assets = getattr(mod, "ASSETS", {}) if fl.ASSET_PATHS == "setting" else {}
+        pack(drfx, files, mod.GROUP, category, assets=packed_assets)
+        if packed_assets:
+            print(f"assets inside the pack: {', '.join(packed_assets)}")
         print(f"packed -> {drfx}  (Edit/{category}/{mod.GROUP}/)")
         if a.install:
             # ASSETS = {"name.png": "/source/path.png"} -> copied to fl.asset_path(GROUP, name)
             import shutil
             pack_name = getattr(mod, "PACK", names[0])
             copied = []
-            for name, src_path in getattr(mod, "ASSETS", {}).items():
+            for name, src_path in ({} if packed_assets else getattr(mod, "ASSETS", {})).items():
                 dst = os.path.join(fl.asset_dir(mod.GROUP), name)
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
                 shutil.copyfile(src_path, dst)
